@@ -4,6 +4,7 @@
 - [x] builder
     [x] test-sandbox-builder
 - [ ] Anchor Generator Space
-    - [ ] Base Anchor Generator
+    - [x] Base Anchor Generator
+    - [ ] SSD Anchor Generator
 - [ ] coder
 - [ ] iou_calculators

@@ -33,3 +33,4 @@ jobs:
         run: |
           cd test_sandbox
           python3 test_builder.py
+          python3 test_anchor.py
