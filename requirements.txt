@@ -1,0 +1,17 @@
+albumentations==0.5.2
+imageio==2.9.0
+imgaug==0.4.0
+imgproc==0.0.2.1
+opencv-python==4.5.2.52
+opencv-python-headless==4.5.2.52
+pandas==1.1.5
+scikit-image==0.17.2
+scikit-learn==0.24.2
+tensorboard==2.4.1
+tensorboard-plugin-profile==2.4.0
+tensorboard-plugin-wit==1.8.0
+tensorflow-addons==0.13.0
+tensorflow-datasets==4.3.0
+tensorflow-estimator==2.4.0
+tensorflow-gpu==2.4.1
+tensorflow-metadata==0.30.0
