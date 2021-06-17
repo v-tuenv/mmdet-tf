@@ -2,6 +2,8 @@ import os,sys,json
 from pathlib import Path
 PATH =Path(os.getcwd()).parent
 sys.path.append(str(PATH.absolute()) + "/")
+PATH =Path(os.getcwd())
+sys.path.append(str(PATH.absolute()) + "/")
 from mmdet_planing import test_builder
 
 config = {'strides':1,'ratios':2,'type':'ModelBuild'}

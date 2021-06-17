@@ -7,9 +7,6 @@ on:
   # Triggers the workflow on push or pull request events but only for the develope branch
   push:
     branches: [ develope ]
-  pull_request:
-    branches: [ develope ]
-
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
