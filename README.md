@@ -1,5 +1,9 @@
 # PLAN 
 
 ## Thang 6:
-- DONE anchor_generator
-- DONE 1/n from core mmdet
+- [x] builder
+    [x] test-sandbox-builder
+- [ ] Anchor Generator Space
+    - [ ] Base Anchor Generator
+- [ ] coder
+- [ ] iou_calculators
