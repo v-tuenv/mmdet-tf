@@ -54,3 +54,5 @@ expected_decode_bboxes = tf.convert_to_tensor([[0.0000, 0.0000, 27.1672, 27.1672
 
 out = coder.decode(rois, deltas, max_shape=(32, 32))
 assert tf.math.reduce_mean(tf.math.abs(out - expected_decode_bboxes)) < 5e-4
+
+print('pass all')

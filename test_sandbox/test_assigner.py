@@ -61,3 +61,4 @@ assign_result = self.assign(bboxes, gt_bboxes)
 
 expected_gt_inds = tf.convert_to_tensor([0, 0, 0, 0])
 assert tf.cast(tf.math.reduce_mean(tf.math.abs(assign_result.gt_inds- expected_gt_inds )), tf.float32) == 0
+print('pass all')

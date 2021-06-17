@@ -36,3 +36,4 @@ jobs:
           python3 test_anchor.py
           python3 test_assigner.py
           python3 test_coder.py
+          python3 test_bbox_iou_calculator
