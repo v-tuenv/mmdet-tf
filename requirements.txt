@@ -15,3 +15,4 @@ tensorflow-datasets==4.3.0
 tensorflow-estimator==2.4.0
 tensorflow-gpu==2.4.1
 tensorflow-metadata==0.30.0
+yapf
