@@ -114,13 +114,11 @@ class AssignResult(util_mixins.NiceRepr):
         Args:
             gt_labels (torch.Tensor): Labels of gt boxes
         """
-        pass
-        # self_inds = torch.arange(
-        #     1, len(gt_labels) + 1, dtype=torch.long, device=gt_labels.device)
-        # self.gt_inds = torch.cat([self_inds, self.gt_inds])
+       
+        self_inds =tf.range(1, len(gt_labels)+1,dtype=tf.int32)
+        self.gt_inds =tf.concat([self_inds, self.gt_inds], axis=0) 
 
-        # self.max_overlaps = torch.cat(
-        #     [self.max_overlaps.new_ones(len(gt_labels)), self.max_overlaps])
+        self.max_overlaps =tf.concat([tf.ones(shape=(len(gt_labels,)), dtype=self.max_overlaps.dtype), self.max_overlaps], axis=0)
 
-        # if self.labels is not None:
-        #     self.labels = torch.cat([gt_labels, self.labels])
+        if self.labels is not None:
+            self.labels = tf.concat([gt_labels, self.labels])

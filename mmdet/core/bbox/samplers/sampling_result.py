@@ -25,12 +25,12 @@ class SamplingResult(util_mixins.NiceRepr):
                  gt_flags):
         self.pos_inds = pos_inds
         self.neg_inds = neg_inds
-        self.pos_bboxes = bboxes[pos_inds]
-        self.neg_bboxes = bboxes[neg_inds]
-        self.pos_is_gt = gt_flags[pos_inds]
+        self.pos_bboxes =tf.gather(bboxes, pos_inds)# bboxes[pos_inds]
+        self.neg_bboxes =tf.gather(bboxes, neg_inds) # bboxes[neg_inds]
+        self.pos_is_gt = tf.gather(gt_flags, pos_inds) # gt_flags[pos_inds]
 
         self.num_gts = gt_bboxes.shape[0]
-        self.pos_assigned_gt_inds = assign_result.gt_inds[pos_inds] - 1
+        self.pos_assigned_gt_inds =tf.gather(assign_result.gt_inds,pos_inds) - 1
 
         if tf.size(gt_bboxes) == 0:
             # hack for index error case
@@ -40,17 +40,17 @@ class SamplingResult(util_mixins.NiceRepr):
             if len(gt_bboxes.get_shape()) < 2:
                 gt_bboxes = tf.reshape(gt_bboxes,(-1, 4))
 
-            self.pos_gt_bboxes = gt_bboxes[self.pos_assigned_gt_inds, :]
+            self.pos_gt_bboxes =tf.gather(gt_bboxes, self.pos_assigned_gt_inds)
 
         if assign_result.labels is not None:
-            self.pos_gt_labels = assign_result.labels[pos_inds]
+            self.pos_gt_labels =tf.gather(assign_result.labels,pos_inds)
         else:
             self.pos_gt_labels = None
 
     @property
     def bboxes(self):
         """torch.Tensor: concatenated positive and negative boxes"""
-        return tf.concat([self.pos_bboxes, self.neg_bboxes])
+        return tf.concat([self.pos_bboxes, self.neg_bboxes], axis=0)
 
     def to(self, device):
         """Change the device of the data inplace.
