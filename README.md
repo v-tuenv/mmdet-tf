@@ -6,5 +6,8 @@
 - [ ] Anchor Generator Space
     - [x] Base Anchor Generator
     - [ ] SSD Anchor Generator
-- [ ] coder
-- [ ] iou_calculators
+- [x] coder
+- [x] iou_calculators
+- [x] assigner 
+- [x] sampler 
+- [ ] retinanet

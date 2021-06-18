@@ -1,21 +1,22 @@
 import tensorflow as tf
 
 from ..builder import LOSSES,build_loss
-
-def cls_loss(y_true, y_pred, alpha = 0.25, gamma = 1.5, label_smoothing = 0.):
+from .utils import reduce_loss, weight_reduce_loss
+def focal_loss_funtion(pred, target, alpha = 0.25, gamma = 1.5, label_smoothing = 0.):
     """y_true: shape = (batch, n_anchors, 1)
        y_pred : shape = (batch, n_anchors, num_class)
     """ 
 #     print(y_true.shape, y_pred.shape)
-    pred_prob = tf.sigmoid(y_pred)
-    p_t = (y_true * pred_prob) + ((1 - y_true) * (1 - pred_prob))
-    alpha_factor = y_true * alpha + (1 - y_true) * (1 - alpha)
+    pred_prob = tf.sigmoid(pred)
+    p_t = (target * pred_prob) + ((1 - target) * (1 - pred_prob))
+    alpha_factor = target * alpha + (1 - target) * (1 - alpha)
     modulating_factor = (1.0 - p_t)**gamma
     
-    y_true = y_true * (1.0 - label_smoothing) + 0.5 * label_smoothing
-    ce = tf.nn.sigmoid_cross_entropy_with_logits(labels=y_true, logits=y_pred)
+    y_true = target * (1.0 - label_smoothing) + 0.5 * label_smoothing
+    ce = tf.nn.sigmoid_cross_entropy_with_logits(labels=y_true, logits=target)
     
-    return alpha_factor * modulating_factor * ce
+    loss_without_weights= alpha_factor * modulating_factor * ce
+    return loss_without_weights
 
 @LOSSES.register_module()
 class FocalLoss(tf.keras.layers.Layer):
@@ -67,28 +68,36 @@ class FocalLoss(tf.keras.layers.Layer):
         Returns:
             torch.Tensor: The calculated loss
         """
-        print(pred.shape, target.shape, weight.shape,avg_factor,reduction_override)
+        # print(pred.shape, target.shape, weight.shape,avg_factor,reduction_override)
         assert reduction_override in (None, 'none', 'mean', 'sum')
+#         print(pred.shape,target.shape,"focal")
         reduction = (
             reduction_override if reduction_override else self.reduction)
         if self.use_sigmoid:
             # if torch.cuda.is_available() and pred.is_cuda:
             #     calculate_loss_func = sigmoid_focal_loss
             # else:
-            #     num_classes = pred.size(1)
-            #     target = F.one_hot(target, num_classes=num_classes + 1)
-            #     target = target[:, :num_classes]
-            #     calculate_loss_func = py_sigmoid_focal_loss
-            tf.print("debuger focalloss")
-            # loss_cls = self.loss_weight * calculate_loss_func(
-            #     pred,
-            #     target,
-            #     weight,
-            #     gamma=self.gamma,
-            #     alpha=self.alpha,
-            #     reduction=reduction,
-            #     avg_factor=avg_factor)
+            num_classes = pred.shape[1]
+            target = tf.one_hot(target,  depth=num_classes) #F.one_hot(target, num_classes=num_classes + 1)
+            # target = target[:, :num_classes]
+            calculate_loss_func = focal_loss_funtion
+            # tf.print("debuger focalloss")
+            loss_cls = self.loss_weight * calculate_loss_func(
+                pred,
+                target,
+                
+                gamma=self.gamma,
+                alpha=self.alpha,
+                )
+            if weight is not None:
+                if weight.shape != loss_cls.shape:
+                    weight = tf.reshape(weight,(-1,1))
+                else:
+                    weight = tf.reshape(weight, loss_cls.shape[0],-1)
+#             print(reduction, avg_factor)
+            
+            loss = weight_reduce_loss(loss_cls, weight, reduction, avg_factor)
 
         else:
             raise NotImplementedError
-        return tf.constant([0.])
+        return loss
