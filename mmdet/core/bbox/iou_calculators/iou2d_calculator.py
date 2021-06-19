@@ -50,8 +50,8 @@ class BboxOverlaps2D:
         Returns:
             Tensor: shape (m, n) if ``is_aligned `` is False else shape (m,)
         """
-        assert tf.shape(bboxes1)[-1] in [0, 4, 5]
-        assert tf.shape(bboxes2)[-1] in [0, 4, 5]
+        # assert tf.shape(bboxes1)[-1] in [0, 4, 5]
+        # assert tf.shape(bboxes2)[-1] in [0, 4, 5]
 
         if bboxes2.shape[-1] == 5:
             bboxes2 = bboxes2[..., :4]
@@ -171,20 +171,21 @@ def bbox_overlaps(bboxes1, bboxes2, mode='iou', is_aligned=False, eps=1e-6):
 
     assert mode in ['iou', 'iof', 'giou'], f'Unsupported mode {mode}'
     # Either the boxes are empty or the length of boxes' last dimension is 4
-    assert (bboxes1.shape[-1] == 4 or bboxes1.shape[0] == 0)
-    assert (bboxes2.shape[-1] == 4 or bboxes2.shape[0] == 0)
+    # assert (bboxes1.shape[-1] == 4 or bboxes1.shape[0] == 0)
+    # assert (bboxes2.shape[-1] == 4 or bboxes2.shape[0] == 0)
 
     # Batch dim must be the same
     # Batch dim: (B1, B2, ... Bn)
-    assert bboxes1.shape[:-2] == bboxes2.shape[:-2], print(bboxes1,bboxes2 )
+    # assert bboxes1.shape[:-2] == bboxes2.shape[:-2], print(bboxes1,bboxes2 )
+    print("trac iou calculator")
     batch_shape = bboxes1.shape[:-2]
-
+    print(bboxes1, bboxes2)
     rows = bboxes1.shape[-2]
     cols = bboxes2.shape[-2]
-    if is_aligned:
-        assert rows == cols
-
-    if rows * cols == 0:
+    # if is_aligned:
+        # assert rows == cols
+    # print(bboxes1,bboxes2)
+    if rows and cols and rows * cols == 0:
         if is_aligned:
             return tf.zeros(shape=batch_shape + (rows,), dtype=bboxes1.dtype) #bboxes1.new(batch_shape + (rows, ))
         else:
@@ -216,7 +217,7 @@ def bbox_overlaps(bboxes1, bboxes2, mode='iou', is_aligned=False, eps=1e-6):
                        bboxes2[..., None, :, 2:])  # [B, rows, cols, 2]
 
 
-        wh = fp16_clamp(rb - lt, min=0)
+        wh = fp16_clamp(rb - lt, min=0.)
         overlap = wh[..., 0] * wh[..., 1]
 
         if mode in ['iou', 'giou']:
@@ -231,7 +232,12 @@ def bbox_overlaps(bboxes1, bboxes2, mode='iou', is_aligned=False, eps=1e-6):
 
     union = tf.maximum(union, eps)
     ious = overlap / union
+    print(ious)
     if mode in ['iou', 'iof']:
+        if is_aligned:
+            ious =tf.ensure_shape(ious, [rows,])
+        else:
+            ious = tf.ensure_shape(ious, [rows,cols])
         return ious
     # calculate gious
     enclose_wh = fp16_clamp(enclosed_rb - enclosed_lt, min=0)

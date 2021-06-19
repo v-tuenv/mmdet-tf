@@ -1,4 +1,5 @@
 
+from mmdet.models.dir_will_be_delete.mix_layers import SequentialLayer
 from tensorflow import keras
 import tensorflow as tf
 from tensorflow.python.ops.gen_array_ops import pad
@@ -24,7 +25,6 @@ class RetinaHead(AnchorHead):
         >>> assert cls_per_anchor == (self.num_classes)
         >>> assert box_per_anchor == 4
     """
-
     def __init__(self,
                  num_classes,
                  in_channels,
@@ -60,11 +60,11 @@ class RetinaHead(AnchorHead):
     def m_init_layers(self):
         """Initialize layers of the head."""
         self.relu = tf.keras.layers.ReLU()# nn.ReLU(inplace=True)
-        self.cls_convs = []
-        self.reg_convs = []
+        cls_convs = []
+        reg_convs = []
         for i in range(self.stacked_convs):
             chn = self.in_channels if i == 0 else self.feat_channels
-            self.cls_convs.append(
+            cls_convs.append(
 
                 ConvModule(
                     chn,
@@ -74,7 +74,7 @@ class RetinaHead(AnchorHead):
                     padding=1,
                     conv_cfg=self.conv_cfg,
                     norm_cfg=self.norm_cfg))
-            self.reg_convs.append(
+            reg_convs.append(
                 ConvModule(
                     chn,
                     self.feat_channels,
@@ -83,7 +83,8 @@ class RetinaHead(AnchorHead):
                     padding=1,
                     conv_cfg=self.conv_cfg,
                     norm_cfg=self.norm_cfg))
-
+        self.cls_convs = SequentialLayer(cls_convs)
+        self.reg_convs = SequentialLayer(reg_convs)
         self.retina_cls =tf.keras.layers.Conv2D(self.num_anchors * self.cls_out_channels,3,padding='SAME')
         self.retina_reg = tf.keras.layers.Conv2D(self.num_anchors *4, 3 , padding='SAME')
     def forward_single(self, x):
@@ -99,10 +100,8 @@ class RetinaHead(AnchorHead):
         """
         cls_feat = x
         reg_feat = x
-        for cls_conv in self.cls_convs:
-            cls_feat = cls_conv(cls_feat)
-        for reg_conv in self.reg_convs:
-            reg_feat = reg_conv(reg_feat)
+        cls_feat = self.cls_convs(x)
+        reg_feat = self.reg_convs(x)
         cls_score = self.retina_cls(cls_feat)
         bbox_pred = self.retina_reg(reg_feat)
         return cls_score, bbox_pred

@@ -1,5 +1,5 @@
 
-from mmdet_tf.mmdet.models.dir_will_be_delete.mix_layers import SequentialLayer
+from mmdet.models.dir_will_be_delete.mix_layers import SequentialLayer
 from tensorflow import keras
 import tensorflow as tf
 from tensorflow.python.ops.gen_array_ops import pad

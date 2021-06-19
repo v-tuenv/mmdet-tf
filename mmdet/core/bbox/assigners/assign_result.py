@@ -34,8 +34,8 @@ class AssignResult(util_mixins.NiceRepr):
                       labels.shape=(7,))>
     """
 
-    def __init__(self, num_gts, gt_inds, max_overlaps, labels=None):
-        self.num_gts = num_gts
+    def __init__(self, gt_inds, max_overlaps, labels=None):
+        
         self.gt_inds = gt_inds
         self.max_overlaps = max_overlaps
         self.labels = labels
@@ -60,7 +60,7 @@ class AssignResult(util_mixins.NiceRepr):
     def info(self):
         """dict: a dictionary of info about the object"""
         basic_info = {
-            'num_gts': self.num_gts,
+           
             'num_preds': self.num_preds,
             'gt_inds': self.gt_inds,
             'max_overlaps': self.max_overlaps,
