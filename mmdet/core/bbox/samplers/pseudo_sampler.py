@@ -27,17 +27,17 @@ class PseudoSampler(BaseSampler):
             :obj:`SamplingResult`: sampler results
         """
         print("trace sample")
-        print(assign_result.gt_inds.shape)
-        print(bboxes.shape)
-        print(gt_bboxes.shape)
-        print("trace done")
+        #print(assign_result.gt_inds.shape)
+        #print(bboxes.shape)
+        #print(gt_bboxes.shape)
+        #print("trace done")
         sh = assign_result.gt_inds.shape[0]
         if sh is None:
             sh= -1
         pos_inds =tf.reshape(tf.where(assign_result.gt_inds > 0,1,0),(sh,))
         # neg_inds =tf.reshape(tf.where(tf.equal(assign_result.gt_inds,0)), (sh,))
         neg_inds = tf.where(assign_result.gt_inds==0,1,0)
-        print(neg_inds.shape)
+       # print(neg_inds.shape)
         neg_inds = tf.reshape(neg_inds,[sh,])
         
         # gt_flags = tf.zeros(shape=(bboxes.shape[0],), dtype=tf.uint16)

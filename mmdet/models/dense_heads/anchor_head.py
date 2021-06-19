@@ -197,8 +197,8 @@ class AnchorHead(BaseDenseHead):
         # inds_inside = tf.reshape(tf.where(inside_flags),(-1,))
         # anchors =tf.gather(flat_anchors, inds_inside)# flat_anchors[inside_flags, :]
        
-        print(anchors)
-        print(gt_bboxes,"trace 204 head_anchor")
+        # print(anchors)
+        # print(gt_bboxes,"trace 204 head_anchor")
         assign_result = self.assigner.assign(
             anchors, gt_bboxes,
             None if self.sampling else gt_labels)
@@ -214,7 +214,7 @@ class AnchorHead(BaseDenseHead):
             pos_bbox_targets = tf.concat([tf.convert_to_tensor([[1.,1.,2.,2.],[1.,1.,2.,2.]],tf.float32),
                                         gt_bboxes],axis=0)
             pos_bbox_targets = tf.gather(pos_bbox_targets, cate_match_ids+1)
-            print('cate', cate_match_ids + 1, pos_inds)
+            # print('cate', cate_match_ids + 1, pos_inds)
             bbox_targets=self.bbox_coder.encode(
                     anchors,pos_bbox_targets)
             bbox_weights = tf.tile(tf.reshape(pos_inds,[-1,1]),[1,4])
@@ -233,9 +233,9 @@ class AnchorHead(BaseDenseHead):
 #         label_weights = tf.stop_gradient(label_weights)
 #         bbox_weights = tf.stop_gradient(bbox_weights)
         # label_weights = anchors.new_zeros(num_valid_anchors, dtype=torch.float)
-        print(bbox_targets.shape,bbox_weights.shape)
-        print(label_weights.shape, labels.shape)
-        print('o')
+        # print(bbox_targets.shape,bbox_weights.shape)
+        # print(label_weights.shape, labels.shape)
+        # print('o')
         
         
         # print(pos_inds,pos_inds.shape)
@@ -365,8 +365,8 @@ class AnchorHead(BaseDenseHead):
         num_total_pos = sum([tf.math.maximum(tf.math.reduce_sum(inds), 1) for inds in pos_inds_list])
         num_total_neg = sum([tf.math.maximum(tf.math.reduce_sum(inds), 1) for inds in neg_inds_list])
         # split targets to a list w.r.t. multiple levels
-        print(all_label_weights)
-        print(num_level_anchors)
+        # print(all_label_weights)
+        # print(num_level_anchors)
         labels_list = images_to_levels(all_labels, num_level_anchors)
         label_weights_list = images_to_levels(all_label_weights,
                                               num_level_anchors)
@@ -374,9 +374,9 @@ class AnchorHead(BaseDenseHead):
                                              num_level_anchors)
         bbox_weights_list = images_to_levels(all_bbox_weights,
                                              num_level_anchors)
-        print([i.shape for i in label_weights_list])
-        print([i.shape for i in labels_list])
-        print([i.shape for i in bbox_targets_list])
+        # print([i.shape for i in label_weights_list])
+        # print([i.shape for i in labels_list])
+        # print([i.shape for i in bbox_targets_list])
         res = (labels_list, label_weights_list, bbox_targets_list,
                bbox_weights_list, num_total_pos, num_total_neg)
         if return_sampling_results:
@@ -498,11 +498,11 @@ class AnchorHead(BaseDenseHead):
         for i in range(len(anchor_list)):
             concat_anchor_list.append(tf.concat(anchor_list[i], axis=0))
         print("back to main loss")
-        print(concat_anchor_list)
+        # print(concat_anchor_list)
         all_anchor_list = images_to_levels(concat_anchor_list,
                                            num_level_anchors)
-        print(all_anchor_list)
-        print(num_level_anchors)
+        # print(all_anchor_list)
+        # print(num_level_anchors)
         losses_cls, losses_bbox = multi_apply(
             self.loss_single,
             cls_scores,

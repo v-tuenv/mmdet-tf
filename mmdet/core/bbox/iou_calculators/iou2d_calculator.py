@@ -177,9 +177,9 @@ def bbox_overlaps(bboxes1, bboxes2, mode='iou', is_aligned=False, eps=1e-6):
     # Batch dim must be the same
     # Batch dim: (B1, B2, ... Bn)
     # assert bboxes1.shape[:-2] == bboxes2.shape[:-2], print(bboxes1,bboxes2 )
-    print("trac iou calculator")
+    #print("trac iou calculator")
     batch_shape = bboxes1.shape[:-2]
-    print(bboxes1, bboxes2)
+    #print(bboxes1, bboxes2)
     rows = bboxes1.shape[-2]
     cols = bboxes2.shape[-2]
     # if is_aligned:
@@ -232,7 +232,7 @@ def bbox_overlaps(bboxes1, bboxes2, mode='iou', is_aligned=False, eps=1e-6):
 
     union = tf.maximum(union, eps)
     ious = overlap / union
-    print(ious)
+    #print(ious)
     if mode in ['iou', 'iof']:
         if is_aligned:
             ious =tf.ensure_shape(ious, [rows,])

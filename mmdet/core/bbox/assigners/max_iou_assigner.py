@@ -103,10 +103,10 @@ class MaxIoUAssigner(BaseAssigner):
             #     gt_bboxes_ignore = gt_bboxes_ignore.cpu()
             # if gt_labels is not None:
             #     gt_labels = gt_labels.cpu()
-        print('trace assigner', gt_bboxes, bboxes)
+        #print('trace assigner', gt_bboxes, bboxes)
         mask_ignore_bboxex =tf.reshape(tf.where(tf.math.reduce_sum(gt_bboxes,axis=-1) < 1.,0,1),(-1,))
         overlaps = self.iou_calculator(gt_bboxes, bboxes)
-        print(overlaps)
+        #print(overlaps)
         # if (self.ignore_iof_thr > 0 and gt_bboxes_ignore is not None
         #         and tf.size(gt_bboxes_ignore) > 0 and tf.size(bboxes) > 0):
         #     if self.ignore_wrt_candidates:
@@ -117,9 +117,9 @@ class MaxIoUAssigner(BaseAssigner):
         #         ignore_overlaps = self.iou_calculator(
         #             gt_bboxes_ignore, bboxes, mode='iof')
         #         ignore_max_overlaps=tf.math.reduce_max( ignore_overlaps,axis=0)
-        #     tf.print(overlaps.shape)
-        #     tf.print(ignore_max_overlaps)
-        #     tf.print("can't assign with gather index")
+        #     tf.#print(overlaps.shape)
+        #     tf.#print(ignore_max_overlaps)
+        #     tf.#print("can't assign with gather index")
         #     overlaps[:, ignore_max_overlaps > self.ignore_iof_thr] = -1
 
         assign_result = self.assign_wrt_overlaps(overlaps, gt_labels,mask_ignore_bboxex)
@@ -202,7 +202,7 @@ class MaxIoUAssigner(BaseAssigner):
             force_match_column_mask = tf.cast(
                 tf.reduce_max(force_match_column_indicators, 0), tf.bool)
 
-            # print(force_match_column_mask, force_match_row_ids, matches)
+            # #print(force_match_column_mask, force_match_row_ids, matches)
             assigned_gt_inds = tf.where(force_match_column_mask,
                                     force_match_row_ids + 1, assigned_gt_inds)
         check_assigned = tf.where(assigned_gt_inds  > 0, assigned_gt_inds + 1, 0)

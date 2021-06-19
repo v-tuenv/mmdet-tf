@@ -84,10 +84,11 @@ class FPN(tf.keras.layers.Layer):
         self.no_norm_on_lateral = no_norm_on_lateral
         self.fp16_enabled = False
         
-        self.upsample_cfg = upsample_cfg.copy()
-        self.upsample_cfg['interpolation'] = self.upsample_cfg.pop("mode",'nearest')
-        if 'scale_factor' in self.upsample_cfg:
-            self.upsample_cfg['size'] = self.upsample_cfg.pop("scale_factor")
+        upsample_cfg = upsample_cfg.copy()
+        upsample_cfg['interpolation'] = upsample_cfg.pop("mode",'nearest')
+        interpolation = upsample_cfg['interpolation']
+        if 'scale_factor' in upsample_cfg:
+            upsample_cfg['size'] = upsample_cfg.pop("scale_factor")
         if end_level == -1:
             self.backbone_end_level = self.num_ins
             assert num_outs >= self.num_ins - start_level
@@ -159,8 +160,9 @@ class FPN(tf.keras.layers.Layer):
                     inplace=False)
                 self.fpn_convs.append(extra_fpn_conv)
 
-        self.fun_upsample = tf.keras.layers.UpSampling2D(**self.upsample_cfg)
+        self.fun_upsample = tf.keras.layers.UpSampling2D(**upsample_cfg)
         self.fun_max = tf.keras.layers.MaxPool2D(pool_size=1, strides=2)
+        self.use_image_resize = 'size' in upsample_cfg
     def call(self, inputs):
         """Forward function."""
         assert len(inputs) == len(self.in_channels)
@@ -176,7 +178,7 @@ class FPN(tf.keras.layers.Layer):
         for i in range(used_backbone_levels - 1, 0, -1):
             # In some cases, fixing `scale factor` (e.g. 2) is preferred, but
             #  it cannot co-exist with `size` in `F.interpolate`.
-            if 'size' in self.upsample_cfg:
+            if self.use_image_resize:
                 laterals[i - 1] = laterals[i-1] +  self.fun_upsample(laterals[i])
             else:
                 prev_shape = laterals[i - 1].shape[-3:-1]
