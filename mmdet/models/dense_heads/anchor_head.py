@@ -426,9 +426,9 @@ class AnchorHead(BaseDenseHead):
             # is applied directly on the decoded bounding boxes, it
             # decodes the already encoded coordinates to absolute format.
             anchors =tf.reshape(anchors,(-1, 4))
-            bbox_pred = self.bbox_coder.decode(anchors, bbox_pred)
             anchors = tf.stop_gradient(anchors)
-            bbox_pred = tf.stop_gradient(bbox_pred)
+            bbox_pred = self.bbox_coder.decode(anchors, bbox_pred)
+            bbox_targets = tf.stop_gradient(bbox_targets)
         loss_bbox = self.loss_bbox(
             bbox_pred,
             bbox_targets,
