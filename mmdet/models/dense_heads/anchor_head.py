@@ -342,7 +342,7 @@ class AnchorHead(BaseDenseHead):
         num_level_anchors = [anchors.shape[0] for anchors in anchor_list[0]]
         # concat all level anchors to a single tensor
         concat_anchor_list = []
-        concat_valid_flag_list = []
+       
         for i in range(num_imgs):
             concat_anchor_list.append(tf.concat(anchor_list[i], axis=0))
 
@@ -388,7 +388,7 @@ class AnchorHead(BaseDenseHead):
         return res + tuple(rest_results)
 
     def loss_single(self, cls_score, bbox_pred, anchors, labels, label_weights,
-                    bbox_targets, bbox_weights, num_total_samples,num_total_neg):
+                    bbox_targets, bbox_weights, num_total_samples):
         """Compute loss of a single scale level.
         Args:
             cls_score (Tensor): Box scores for each scale level
@@ -417,7 +417,7 @@ class AnchorHead(BaseDenseHead):
 
         cls_score =tf.reshape(cls_score,(-1, self.cls_out_channels))
         loss_cls = self.loss_cls(
-            cls_score, labels, label_weights, avg_factor=num_total_samples + num_total_neg)
+            cls_score, labels, label_weights, avg_factor=num_total_samples)
         # regression loss
         bbox_targets =tf.reshape(bbox_targets,(-1, 4))
         bbox_weights = tf.reshape(bbox_weights,(-1, 4))
@@ -427,7 +427,6 @@ class AnchorHead(BaseDenseHead):
             # is applied directly on the decoded bounding boxes, it
             # decodes the already encoded coordinates to absolute format.
             anchors =tf.reshape(anchors,(-1, 4))
-            anchors = tf.stop_gradient(anchors)
             bbox_pred = self.bbox_coder.decode(anchors, bbox_pred)
             bbox_targets = tf.stop_gradient(bbox_targets)
         loss_bbox = self.loss_bbox(
@@ -500,7 +499,7 @@ class AnchorHead(BaseDenseHead):
             concat_anchor_list.append(tf.concat(anchor_list[i], axis=0))
         print("back to main loss")
         # print(concat_anchor_list)
-        all_anchor_list = images_to_levels(concat_anchor_list,
+        all_anchor_list =   images_to_levels(concat_anchor_list,
                                            num_level_anchors)
         # print(all_anchor_list)
         # print(num_level_anchors)
@@ -513,8 +512,8 @@ class AnchorHead(BaseDenseHead):
             label_weights_list,
             bbox_targets_list,
             bbox_weights_list,
-            num_total_samples=num_total_pos,
-            num_total_neg=num_total_neg)
+            num_total_samples=num_total_samples,
+            )
         return dict(loss_cls=losses_cls, loss_bbox=losses_bbox)
 
     def get_bboxes(self,
