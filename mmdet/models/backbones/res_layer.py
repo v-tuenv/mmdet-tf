@@ -166,6 +166,41 @@ class SimplifiedBasicBlock(tf.keras.layers.Layer):
     def norm2(self):
         """nn.Module: normalization layer after the second convolution layer"""
         return getattr(self, self.norm2_name) if self.with_norm else None
+    
+    def call_funtion(self, x):
+
+        identity = x
+        if hasattr(self.conv1,'not_base') and self.conv1.not_base:
+            out = self.conv1.call_funtion(x)
+        else:
+            out = self.conv1(x)
+        if self.with_norm:
+            if hasattr(self.norm1,'not_base') and self.norm1.not_base:
+                out = self.norm1.call_funtion(out)
+            else:
+                out = self.norm1(out)
+
+        out = self.relu(out)
+
+        if hasattr(self.conv2,'not_base') and self.conv2.not_base:
+            out = self.conv2.call_funtion(out)
+        else:
+            out = self.conv2(x)
+        if self.with_norm:
+            if hasattr(self.norm2,'not_base') and self.norm2.not_base:
+                out = self.norm2.call_funtion(out)
+            else:
+                out = self.norm2(out)
+
+        if self.downsample is not None:
+            if hasattr(self.downsample,'not_base') and self.downsample.not_base:
+                identity = self.downsample.call_funtion(x)
+            else:
+                identity = self.downsample(x)
+
+        out = out +  identity
+
+        return out
 
     def call(self, x,training=False):
         """Forward function."""

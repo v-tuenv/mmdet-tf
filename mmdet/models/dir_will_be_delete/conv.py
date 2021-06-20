@@ -13,8 +13,9 @@ CONV_LAYERS.register_module('Conv', module=layers.Conv2D)
 
 def merger(pre, affter, cfg):
     prex = cfg.pop(pre,None)
-    if prex:
+    if prex is not None:
         cfg[affter] = prex
+    return cfg
 
 def build_conv_layer(cfg, *args, **kwargs):
     """Build convolution layer.
@@ -42,15 +43,15 @@ def build_conv_layer(cfg, *args, **kwargs):
     padding = cfg_.pop("padding",None)
     if padding is None:
         padding = kwargs.pop("padding",None)
-    merger("bias",'use_bias',cfg_)
-    merger("bias","use_bias",kwargs)
-    merger("stride",'strides',cfg_)
-    merger("stride","strides",kwargs)
+    cfg_=merger("bias",'use_bias',cfg_)
+    kwargs=merger("bias","use_bias",kwargs)
+    cfg_=merger("stride",'strides',cfg_)
+    kwargs=merger("stride","strides",kwargs)
     # if bias:
     #     cfg_['use_bias'] = bias
     #     tf.print("pls refactor code bias to use_bias")
-    merger('dilation','dilation_rate',cfg_)
-    merger('dilation','dilation_rate',kwargs)
+    cfg_=merger('dilation','dilation_rate',cfg_)
+    kwargs=merger('dilation','dilation_rate',kwargs)
     
     if layer_type not in CONV_LAYERS:
         raise KeyError(f'Unrecognized norm type {layer_type}')
@@ -58,6 +59,7 @@ def build_conv_layer(cfg, *args, **kwargs):
         conv_layer = CONV_LAYERS.get(layer_type)
 
     layer = conv_layer(*args, **kwargs, **cfg_)
+    # print(**kwargs,**cfg)
     if padding is not None:
         padding_layer = tf.keras.layers.ZeroPadding2D(padding=(padding, padding))
         return SequentialLayer([padding_layer, layer])

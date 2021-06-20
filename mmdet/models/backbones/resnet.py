@@ -63,6 +63,53 @@ class BasicBlock(tf.keras.layers.Layer):
         """nn.Module: normalization layer after the second convolution layer"""
         return getattr(self, self.norm2_name)
 
+    def call_funtion(self, x):
+        def _inner_forward(x):
+            identity = x
+            if hasattr(self.conv1,'not_base') and self.conv1.not_base:
+                out = self.conv1.call_funtion(x)
+            else:
+                out = self.conv1(x)
+            if self.with_norm:
+                if hasattr(self.norm1,'not_base') and self.norm1.not_base:
+                    out = self.norm1.call_funtion(out)
+                else:
+                    out = self.norm1(out)
+
+            out = self.relu(out)
+
+            if hasattr(self.conv2,'not_base') and self.conv2.not_base:
+                out = self.conv2.call_funtion(out)
+            else:
+                out = self.conv2(x)
+            
+            if self.with_norm:
+                if hasattr(self.norm2,'not_base') and self.norm2.not_base:
+                    out = self.norm2.call_funtion(out)
+                else:
+                    out = self.norm2(out)
+
+            if self.downsample is not None:
+                if hasattr(self.downsample,'not_base') and self.downsample.not_base:
+                    identity = self.downsample.call_funtion(x)
+                else:
+                    identity = self.downsample(x)
+
+            out = out +  identity
+
+            return out
+
+        # if self.with_cp and x.requires_grad:
+        #     # out = cp.checkpoint(_inner_forward, x)
+        #     # tf.print('implement checkpint')
+        #     pass
+        
+        out = _inner_forward(x)
+
+        out = self.relu(out)
+
+        return out
+
     def call(self, x,training=False):
         """Forward function."""
 
@@ -299,6 +346,73 @@ class Bottleneck(tf.keras.layers.Layer):
 
         return out
 
+    def call_funtion(self, x):
+        """Forward function."""
+
+        def _inner_forward(x):
+            identity = x
+            if hasattr(self.conv1,'not_base') and self.conv1.not_base:
+                out = self.conv1.call_funtion(x)
+            else:
+                out = self.conv1(x)
+            if self.with_norm:
+                if hasattr(self.norm1,'not_base') and self.norm1.not_base:
+                    out = self.norm1.call_funtion(out)
+                else:
+                    out = self.norm1(out)
+
+            out = self.relu(out)
+
+
+            if self.with_plugins:
+                out = self.forward_plugin(out, self.after_conv1_plugin_names)
+
+            if hasattr(self.conv2,'not_base') and self.conv2.not_base:
+                out = self.conv2.call_funtion(out)
+            else:
+                out = self.conv2(x)
+            if self.with_norm:
+                if hasattr(self.norm2,'not_base') and self.norm2.not_base:
+                    out = self.norm2.call_funtion(out)
+                else:
+                    out = self.norm2(out)
+            out = self.relu(out)
+            
+
+            if self.with_plugins:
+                out = self.forward_plugin(out, self.after_conv2_plugin_names)
+
+            if hasattr(self.conv3,'not_base') and self.conv3.not_base:
+                out = self.conv3.call_funtion(out)
+            else:
+                out = self.conv3(x)
+            if self.with_norm:
+                if hasattr(self.norm3,'not_base') and self.norm3.not_base:
+                    out = self.norm3.call_funtion(out)
+                else:
+                    out = self.norm3(out)
+
+            if self.with_plugins:
+                out = self.forward_plugin(out, self.after_conv3_plugin_names)
+
+            if self.downsample is not None:
+                if hasattr(self.downsample,'not_base') and self.downsample.not_base:
+                    identity = self.downsample.call_funtion(x)
+                else:
+                    identity = self.downsample(x)
+
+            out = out + identity
+
+            return out
+
+        # if self.with_cp and x.requires_grad:
+            # out = cp.checkpoint(_inner_forward, x)
+        # else:
+        out = _inner_forward(x)
+
+        out = self.relu(out)
+
+        return out
 
 @BACKBONES.register_module()
 class ResNet(tf.keras.layers.Layer):
@@ -615,6 +729,36 @@ class ResNet(tf.keras.layers.Layer):
         #     m.eval()
         #     for param in m.parameters():
         #         param.requires_grad = False
+    def call_funtion(self, x):
+        if self.deep_stem:
+            if hasattr(self.stem,'not_base') and self.stem.not_base:
+                x = self.stem.call_funtion(x)
+            else:
+                x=self.stem(x)
+        else:
+            if hasattr(self.conv1,'not_base') and self.conv1.not_base:
+                x=self.conv1.call_funtion(x)
+            else:
+                x = self.conv1(x)
+            if hasattr(self.norm1,'not_base') and self.norm1.not_base:
+                x=self.norm1.call_funtion(x)
+            else:
+                x = self.norm1(x)
+
+          
+            x = self.relu(x)
+
+        x = self.maxpool(x)
+        outs = []
+        for i, layer_name in enumerate(self.res_layers):
+            res_layer = getattr(self, layer_name)
+            if hasattr(res_layer,'not_base') and res_layer.not_base:
+                x=res_layer.call_funtion(x)
+            else:
+                x = res_layer(x)
+            if i in self.out_indices:
+                outs.append(x)
+        return tuple(outs)
 
     def call(self, x,training=False):
         """Forward function."""
