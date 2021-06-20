@@ -15,8 +15,8 @@ def smooth_l1_loss(pred, target, beta=1.0):
     Returns:
         torch.Tensor: Calculated loss
     """
-    assert beta > 0
-    assert pred.size() == target.size() and target.numel() > 0
+    # assert beta > 0
+    # assert pred.size() == target.size() and target.numel() > 0
     diff = tf.math.abs(pred - target)
     loss = tf.where(diff < beta, 0.5 * diff * diff / beta,
                        diff - 0.5 * beta)
@@ -79,7 +79,7 @@ class SmoothL1Loss(tf.keras.layers.Layer):
             beta=self.beta,
             reduction=reduction,
             avg_factor=avg_factor,
-            **kwargs)
+            )
         return loss_bbox
 
 

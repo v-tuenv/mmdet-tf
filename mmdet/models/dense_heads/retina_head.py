@@ -99,6 +99,7 @@ class RetinaHead(AnchorHead):
                 bbox_pred (Tensor): Box energies / deltas for a single scale
                     level, the channels number is num_anchors * 4.
         """
+        print("call retinahead")
         cls_feat = x
         reg_feat = x
         cls_feat = self.cls_convs(x,training=training)
