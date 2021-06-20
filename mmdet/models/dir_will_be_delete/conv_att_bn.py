@@ -182,14 +182,14 @@ class ConvModule(tf.keras.layers.Layer):
         #     constant_init(self.norm, 1, bias=0)
         tf.print("implement init weights in conv_att_bn.py")
 
-    def call(self, x, activate=True, norm=True):
+    def call(self, x, activate=True, norm=True, training=False):
         for layer in self.order:
             if layer == 'conv':
                 if self.with_explicit_padding:
-                    x = self.padding_layer(x)
-                x = self.conv(x)
+                    x = self.padding_layer(x,training=training)
+                x = self.conv(x,training=training)
             elif layer == 'norm' and norm and self.with_norm:
-                x = self.norm(x)
+                x = self.norm(x,training=training)
             elif layer == 'act' and activate and self.with_activation:
-                x = self.activate(x)
+                x = self.activate(x,training=training)
         return x

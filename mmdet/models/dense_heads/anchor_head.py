@@ -99,7 +99,7 @@ class AnchorHead(BaseDenseHead):
         self.conv_cls = nn.Conv2D(self.num_anchors * self.cls_out_channels, 1)
         self.conv_reg = nn.Conv2D(self.num_anchors * 4, 1)
     @tf.function(experimental_relax_shapes=True)
-    def forward_single(self, x):
+    def forward_single(self, x,training=False):
         """Forward feature of a single scale level.
         Args:
             x (Tensor): Features of a single scale level.
@@ -110,11 +110,11 @@ class AnchorHead(BaseDenseHead):
                 bbox_pred (Tensor): Box energies / deltas for a single scale \
                     level, the channels number is num_anchors * 4.
         """
-        cls_score = self.conv_cls(x)
-        bbox_pred = self.conv_reg(x)
+        cls_score = self.conv_cls(x,training=training)
+        bbox_pred = self.conv_reg(x,training=training)
         return cls_score, bbox_pred
     @tf.function(experimental_relax_shapes=True)
-    def call(self, feats):
+    def call(self, feats, training=False):
         """Forward features from the upstream network.
         Args:
             feats (tuple[Tensor]): Features from the upstream network, each is
@@ -129,7 +129,7 @@ class AnchorHead(BaseDenseHead):
                     is num_anchors * 4.
         """
         print('trace call')
-        return multi_apply(self.forward_single, feats)
+        return multi_apply(self.forward_single, feats,training=training)
 
     def get_anchors(self, featmap_sizes,num_imgs):
         """Get anchors according to feature map sizes.

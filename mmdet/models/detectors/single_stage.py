@@ -35,19 +35,19 @@ class SingleStageDetector(BaseDetector):
         self.test_cfg = test_cfg
 
     @tf.function(experimental_relax_shapes=True)
-    def extract_feat(self, img):
+    def extract_feat(self, img,training=False):
         """Directly extract features from the backbone+neck."""
-        x = self.backbone(img)
+        x = self.backbone(img,training=training)
         if self.with_neck:
-            x = self.neck(x)
+            x = self.neck(x,training=training)
         return x
     @tf.function(experimental_relax_shapes=True)
-    def call(self, img):
+    def call(self, img,training=False):
         """Used for computing network flops.
         See `mmdetection/tools/analysis_tools/get_flops.py`
         """
-        x = self.extract_feat(img)
-        outs = self.bbox_head(x)
+        x = self.extract_feat(img,training=training)
+        outs = self.bbox_head(x,training=training)
         return outs
    
     def forward_train(self,
@@ -74,7 +74,7 @@ class SingleStageDetector(BaseDetector):
         """
         print("trac forward train")
         super(SingleStageDetector, self).forward_train(img)
-        x = self.extract_feat(img)
+        x = self.extract_feat(img,training=True)
         losses = self.bbox_head.forward_train(x, gt_bboxes,
                                               gt_labels, batch_size=batch_size)
         return losses

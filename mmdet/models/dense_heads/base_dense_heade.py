@@ -16,14 +16,14 @@ class BaseDenseHead(tf.keras.layers.Layer, metaclass=ABCMeta):
         """Transform network output for a batch into bbox predictions."""
         pass
     
-#     @tf.function(experimental_relax_shapes=True)
+    @tf.function(experimental_relax_shapes=True)
     def forward_train(self,
                       x,
                       gt_bboxes,
                       gt_labels=None,
                       batch_size=None,
                       proposal_cfg=None,
-                      **kwargs):
+                      ):
         """
         Args:
             x (list[Tensor]): Features from FPN.
@@ -43,7 +43,7 @@ class BaseDenseHead(tf.keras.layers.Layer, metaclass=ABCMeta):
                 proposal_list (list[Tensor]): Proposals of each image.
         """
 #         print("trace base dense")
-        outs = self(x)
+        outs = self(x, training=True)
         if batch_size is not None:
             gt_bboxes = tf.unstack(gt_bboxes,batch_size)
             if gt_labels is not None:

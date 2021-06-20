@@ -7,7 +7,7 @@ class SequentialLayer(tf.keras.layers.Layer):
         super().__init__()
         self.wrap_list = []
         for layer in args:self.wrap_list.append(copy.deepcopy(layer))
-    def call(self, inputs):
+    def call(self, inputs, training=False):
         for l in self.wrap_list:
-            inputs = l(inputs)
+            inputs = l(inputs,training=training)
         return inputs
