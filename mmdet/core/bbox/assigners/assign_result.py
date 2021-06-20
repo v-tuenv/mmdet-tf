@@ -72,7 +72,7 @@ class AssignResult(util_mixins.NiceRepr):
     def __nice__(self):
         """str: a "nice" summary string describing this assign result"""
         parts = []
-        parts.append(f'num_gts={self.num_gts!r}')
+        # parts.append(f'num_gts={self.num_gts!r}')
         if self.gt_inds is None:
             parts.append(f'gt_inds={self.gt_inds!r}')
         else:

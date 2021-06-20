@@ -15,7 +15,8 @@ def reduce_loss(loss, reduction):
         Tensor: Reduced loss tensor.
     """
     reduction = reduce_loss.lower()
-    reduction_enum = F._Reduction.get_enum(reduction)
+    reduction_enum = REDUCTION_ENUM[reduction]
+    # reduction_enum = F._Reduction.get_enum(reduction)
     # none: 0, elementwise_mean:1, sum: 2
     if reduction_enum == 0:
         return loss

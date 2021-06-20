@@ -23,11 +23,12 @@ bboxes = tf.convert_to_tensor([
 ],dtype=tf.float32)
 gt_bboxes = tf.convert_to_tensor([
     [0, 0, 10, 9],
-    [0, 0, 0, 0],
+    [0, 10, 10, 19],
 ], dtype=tf.float32)
 gt_labels =tf.convert_to_tensor([2, 3])
 assign_result = self.assign(bboxes, gt_bboxes, gt_labels=gt_labels)
 expected_gt_inds = tf.convert_to_tensor([1, 0, 2, 0])
+print(assign_result.labels,assign_result.gt_inds)
 assert tf.cast(tf.math.reduce_mean(tf.math.abs(assign_result.gt_inds- expected_gt_inds )), tf.float32) ==0
 print("out f")
 print(assign_result)

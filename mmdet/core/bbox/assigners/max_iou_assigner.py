@@ -1,3 +1,4 @@
+from token import RPAR
 import tensorflow as tf
 
 from ..builder import BBOX_ASSIGNERS
@@ -205,11 +206,17 @@ class MaxIoUAssigner(BaseAssigner):
             # #print(force_match_column_mask, force_match_row_ids, matches)
             assigned_gt_inds = tf.where(force_match_column_mask,
                                     force_match_row_ids + 1, assigned_gt_inds)
-        check_assigned = tf.where(assigned_gt_inds  > 0, assigned_gt_inds + 1, 0)
+        # print(assigned_gt_inds)
+        check_assigned = tf.where(assigned_gt_inds  >= 0, assigned_gt_inds+1, 0)
+        
         mask_ignore_bboxex = tf.concat([tf.convert_to_tensor([0,1]),mask_ignore_bboxex],axis=0)
+        # print(mask_ignore_bboxex)
+        # print(check_assigned)
         check_min_are = tf.gather(mask_ignore_bboxex, check_assigned)
         # check_min_are = tf.where(check_min_are >)
+        # print(check_min_are)
         assigned_gt_inds = assigned_gt_inds * check_min_are + (1-check_min_are) * -1
+        
         if gt_labels is not None:
             fake_gt_labels = tf.concat([tf.convert_to_tensor([-1], dtype = gt_labels.dtype),gt_labels], axis=0)
             pos_inds = tf.where(tf.not_equal(assigned_gt_inds, -1),1, 0)
