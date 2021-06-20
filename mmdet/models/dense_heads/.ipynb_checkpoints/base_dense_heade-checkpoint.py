@@ -7,7 +7,7 @@ class BaseDenseHead(tf.keras.layers.Layer, metaclass=ABCMeta):
         super(BaseDenseHead, self).__init__()
 
     @abstractmethod
-    def loss(self, **kwargs):
+    def mloss(self, **kwargs):
         """Compute losses of the head."""
         pass
 
@@ -15,13 +15,13 @@ class BaseDenseHead(tf.keras.layers.Layer, metaclass=ABCMeta):
     def get_bboxes(self, **kwargs):
         """Transform network output for a batch into bbox predictions."""
         pass
-
+    
+#     @tf.function(experimental_relax_shapes=True)
     def forward_train(self,
                       x,
-                      img_metas,
                       gt_bboxes,
                       gt_labels=None,
-                      gt_bboxes_ignore=None,
+                      batch_size=None,
                       proposal_cfg=None,
                       **kwargs):
         """
@@ -42,19 +42,25 @@ class BaseDenseHead(tf.keras.layers.Layer, metaclass=ABCMeta):
                 losses: (dict[str, Tensor]): A dictionary of loss components.
                 proposal_list (list[Tensor]): Proposals of each image.
         """
+#         print("trace base dense")
         outs = self(x)
+        if batch_size is not None:
+            gt_bboxes = tf.unstack(gt_bboxes,batch_size)
+            if gt_labels is not None:
+                gt_labels=tf.unstack(gt_labels, batch_size)
         if gt_labels is None:
-            loss_inputs = outs + (gt_bboxes, img_metas)
+            loss_inputs = outs + (gt_bboxes,)
         else:
-            loss_inputs = outs + (gt_bboxes, gt_labels, img_metas)
-        losses = self.loss(*loss_inputs, gt_bboxes_ignore=gt_bboxes_ignore)
+            loss_inputs = outs + (gt_bboxes, gt_labels, )
+#         print(loss_inputs)
+        losses = self.mloss(*loss_inputs)
         if proposal_cfg is None:
             return losses
         else:
-            proposal_list = self.get_bboxes(*outs, img_metas, cfg=proposal_cfg)
+            proposal_list = self.get_bboxes(*outs,  cfg=proposal_cfg)
             return losses, proposal_list
 
-    def simple_test(self, feats, img_metas, rescale=False):
+    def simple_test(self, feats, rescale=False):
         """Test function without test-time augmentation.
         Args:
             feats (tuple[torch.Tensor]): Multi-level features from the
@@ -69,4 +75,4 @@ class BaseDenseHead(tf.keras.layers.Layer, metaclass=ABCMeta):
                 The shape of the second tensor in the tuple is ``labels``
                 with shape (n,)
         """
-        return self.simple_test_bboxes(feats, img_metas, rescale=rescale)
+        return self.simple_test_bboxes(feats, rescale=rescale)

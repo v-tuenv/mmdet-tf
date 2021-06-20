@@ -63,21 +63,21 @@ class BasicBlock(tf.keras.layers.Layer):
         """nn.Module: normalization layer after the second convolution layer"""
         return getattr(self, self.norm2_name)
 
-    def call(self, x):
+    def call(self, x,training=False):
         """Forward function."""
 
-        def _inner_forward(x):
+        def _inner_forward(x,training=False):
             identity = x
 
-            out = self.conv1(x)
-            out = self.norm1(out)
-            out = self.relu(out)
+            out = self.conv1(x,training=training)
+            out = self.norm1(out,training=training)
+            out = self.relu(out,training=training)
 
-            out = self.conv2(out)
-            out = self.norm2(out)
+            out = self.conv2(out,training=training)
+            out = self.norm2(out,training=training)
 
             if self.downsample is not None:
-                identity = self.downsample(x)
+                identity = self.downsample(x,training=training)
 
             out = out +  identity
 
@@ -88,9 +88,9 @@ class BasicBlock(tf.keras.layers.Layer):
         #     # tf.print('implement checkpint')
         #     pass
         
-        out = _inner_forward(x)
+        out = _inner_forward(x,training=training)
 
-        out = self.relu(out)
+        out = self.relu(out,training=training)
 
         return out
 
@@ -237,6 +237,7 @@ class Bottleneck(tf.keras.layers.Layer):
         return plugin_names
 
     def forward_plugin(self, x, plugin_names):
+        raise Exception("forward_plugin not implement")
         out = x
         for name in plugin_names:
             out = getattr(self, name)(x)
@@ -257,33 +258,33 @@ class Bottleneck(tf.keras.layers.Layer):
         """nn.Module: normalization layer after the third convolution layer"""
         return getattr(self, self.norm3_name)
 
-    def call(self, x):
+    def call(self, x,training=False):
         """Forward function."""
 
-        def _inner_forward(x):
+        def _inner_forward(x,training=False):
             identity = x
-            out = self.conv1(x)
-            out = self.norm1(out)
-            out = self.relu(out)
+            out = self.conv1(x,training=training)
+            out = self.norm1(out,training=training)
+            out = self.relu(out,training=training)
 
             if self.with_plugins:
                 out = self.forward_plugin(out, self.after_conv1_plugin_names)
 
-            out = self.conv2(out)
-            out = self.norm2(out)
-            out = self.relu(out)
+            out = self.conv2(out,training=training)
+            out = self.norm2(out,training=training)
+            out = self.relu(out,training=training)
 
             if self.with_plugins:
                 out = self.forward_plugin(out, self.after_conv2_plugin_names)
 
-            out = self.conv3(out)
-            out = self.norm3(out)
+            out = self.conv3(out,training=training)
+            out = self.norm3(out,training=training)
 
             if self.with_plugins:
                 out = self.forward_plugin(out, self.after_conv3_plugin_names)
 
             if self.downsample is not None:
-                identity = self.downsample(x)
+                identity = self.downsample(x,training=training)
 
             out = out + identity
 
@@ -292,9 +293,9 @@ class Bottleneck(tf.keras.layers.Layer):
         # if self.with_cp and x.requires_grad:
             # out = cp.checkpoint(_inner_forward, x)
         # else:
-        out = _inner_forward(x)
+        out = _inner_forward(x,training=training)
 
-        out = self.relu(out)
+        out = self.relu(out,training=training)
 
         return out
 
@@ -592,7 +593,7 @@ class ResNet(tf.keras.layers.Layer):
             super(ResNet,self).__setattr__(self.norm1_name, norm1)
             
             self.relu = tf.keras.layers.ReLU()
-        self.maxpool =SequentialLayer([tf.keras.layers.ZeroPadding2D(padding=(1,1)), tf.keras.layers.MaxPool2D(pool_size=3, strides=2)])
+        self.maxpool = tf.keras.layers.MaxPool2D(pool_size=3, strides=2,padding='SAME')
         #self.maxpool.add(tf.keras.layers.ZeroPadding2D(padding=(1,1)))
        # self.maxpool.add(tf.keras.layers.MaxPool2D(pool_size=3, strides=2)) #nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         
@@ -615,19 +616,19 @@ class ResNet(tf.keras.layers.Layer):
         #     for param in m.parameters():
         #         param.requires_grad = False
 
-    def call(self, x):
+    def call(self, x,training=False):
         """Forward function."""
         if self.deep_stem:
-            x = self.stem(x)
+            x = self.stem(x,training=training)
         else:
-            x = self.conv1(x)
-            x = self.norm1(x)
-            x = self.relu(x)
-        x = self.maxpool(x)
+            x = self.conv1(x,training=training)
+            x = self.norm1(x,training=training)
+            x = self.relu(x,training=training)
+        x = self.maxpool(x,training=training)
         outs = []
         for i, layer_name in enumerate(self.res_layers):
             res_layer = getattr(self, layer_name)
-            x = res_layer(x)
+            x = res_layer(x,training=training)
             if i in self.out_indices:
                 outs.append(x)
         return tuple(outs)

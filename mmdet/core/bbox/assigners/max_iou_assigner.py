@@ -63,7 +63,7 @@ class MaxIoUAssigner(BaseAssigner):
         self.match_low_quality = match_low_quality
         self.iou_calculator = build_iou_calculator(iou_calculator)
 
-    def assign(self, bboxes, gt_bboxes, gt_bboxes_ignore=None, gt_labels=None):
+    def assign(self, bboxes, gt_bboxes, gt_labels=None):
         """Assign gt to bboxes.
         This method assign a gt bbox to every bbox (proposal/anchor), each bbox
         will be assigned with -1, or a semi-positive number. -1 means negative
@@ -103,25 +103,26 @@ class MaxIoUAssigner(BaseAssigner):
             #     gt_bboxes_ignore = gt_bboxes_ignore.cpu()
             # if gt_labels is not None:
             #     gt_labels = gt_labels.cpu()
-
+        #print('trace assigner', gt_bboxes, bboxes)
+        mask_ignore_bboxex =tf.reshape(tf.where(tf.math.reduce_sum(gt_bboxes,axis=-1) < 1.,0,1),(-1,))
         overlaps = self.iou_calculator(gt_bboxes, bboxes)
+        #print(overlaps)
+        # if (self.ignore_iof_thr > 0 and gt_bboxes_ignore is not None
+        #         and tf.size(gt_bboxes_ignore) > 0 and tf.size(bboxes) > 0):
+        #     if self.ignore_wrt_candidates:
+        #         ignore_overlaps = self.iou_calculator(
+        #             bboxes, gt_bboxes_ignore, mode='iof')
+        #         ignore_max_overlaps =tf.math.reduce_max( ignore_overlaps, axis=1)
+        #     else:
+        #         ignore_overlaps = self.iou_calculator(
+        #             gt_bboxes_ignore, bboxes, mode='iof')
+        #         ignore_max_overlaps=tf.math.reduce_max( ignore_overlaps,axis=0)
+        #     tf.#print(overlaps.shape)
+        #     tf.#print(ignore_max_overlaps)
+        #     tf.#print("can't assign with gather index")
+        #     overlaps[:, ignore_max_overlaps > self.ignore_iof_thr] = -1
 
-        if (self.ignore_iof_thr > 0 and gt_bboxes_ignore is not None
-                and tf.size(gt_bboxes_ignore) > 0 and tf.size(bboxes) > 0):
-            if self.ignore_wrt_candidates:
-                ignore_overlaps = self.iou_calculator(
-                    bboxes, gt_bboxes_ignore, mode='iof')
-                ignore_max_overlaps =tf.math.reduce_max( ignore_overlaps, axis=1)
-            else:
-                ignore_overlaps = self.iou_calculator(
-                    gt_bboxes_ignore, bboxes, mode='iof')
-                ignore_max_overlaps=tf.math.reduce_max( ignore_overlaps,axis=0)
-            tf.print(overlaps.shape)
-            tf.print(ignore_max_overlaps)
-            tf.print("can't assign with gather index")
-            overlaps[:, ignore_max_overlaps > self.ignore_iof_thr] = -1
-
-        assign_result = self.assign_wrt_overlaps(overlaps, gt_labels)
+        assign_result = self.assign_wrt_overlaps(overlaps, gt_labels,mask_ignore_bboxex)
         # if assign_on_cpu:
         #     assign_result.gt_inds = assign_result.gt_inds.to(device)
         #     assign_result.max_overlaps = assign_result.max_overlaps.to(device)
@@ -129,7 +130,7 @@ class MaxIoUAssigner(BaseAssigner):
         #         assign_result.labels = assign_result.labels.to(device)
         return assign_result
 
-    def assign_wrt_overlaps(self, overlaps, gt_labels=None):
+    def assign_wrt_overlaps(self, overlaps, gt_labels=None,mask_ignore_bboxex=None):
         """Assign w.r.t. the overlaps of bboxes with gts.
         Args:
             overlaps (Tensor): Overlaps between k gt_bboxes and n bboxes,
@@ -138,45 +139,43 @@ class MaxIoUAssigner(BaseAssigner):
         Returns:
             :obj:`AssignResult`: The assign result.
         """
-        num_gts, num_bboxes = overlaps.shape[0], overlaps.shape[1]
+        # num_gts, num_bboxes = overlaps.shape[0], overlaps.shape[1]
 
         # 1. assign -1 by default
-        assigned_gt_inds =tf.ones(shape=(num_bboxes,), dtype=tf.int32) * -1
+        
 
-        if num_gts == 0 or num_bboxes == 0:
-            # No ground truth or boxes, return empty assignment
-            max_overlaps = tf.zeros(shape=(num_bboxes,)) 
-            if num_gts == 0:
-                # No truth, assign everything to background
-                assigned_gt_inds = 0
-            if gt_labels is None:
-                assigned_labels = None
-            else:
-                assigned_labels =tf.ones(shape=(num_bboxes,), dtype=tf.int32) * -1 
-            return AssignResult(
-                num_gts,
-                assigned_gt_inds,
-                max_overlaps,
-                labels=assigned_labels)
+        # if num_gts == 0 or num_bboxes == 0:
+        #     # No ground truth or boxes, return empty assignment
+        #     max_overlaps = tf.zeros(shape=(num_bboxes,)) 
+        #     if num_gts == 0:
+        #         # No truth, assign everything to background
+        #         assigned_gt_inds = 0
+        #     if gt_labels is None:
+        #         assigned_labels = None
+        #     else:
+        #         assigned_labels =tf.ones(shape=(num_bboxes,), dtype=tf.int32) * -1 
+        #     return AssignResult(
+        #         num_gts,
+        #         assigned_gt_inds,
+        #         max_overlaps,
+        #         labels=assigned_labels)
 
         # for each anchor, which gt best overlaps with it
         # for each anchor, the max iou of all gts
+        #mask_ignore_bboxex shape = N,
         max_overlaps =tf.math.reduce_max(overlaps,axis=0)
         argmax_overlaps = tf.math.argmax(overlaps, axis=0,output_type=tf.dtypes.int32)
         # for each gt, which anchor best overlaps with it
         # for each gt, the max iou of all proposals
-        gt_max_overlaps = tf.math.reduce_max(overlaps,axis=1)
+        # gt_max_overlaps = tf.math.reduce_max(overlaps,axis=1)
         gt_argmax_overlaps=tf.math.argmax(overlaps, axis=1,output_type=tf.dtypes.int32)
         # 2. assign negative: below
         # the negative inds are set to be 0
         if isinstance(self.neg_iou_thr, float):
-            index = tf.where(tf.logical_and(max_overlaps >=0., max_overlaps < self.neg_iou_thr),1,0)
-            assigned_gt_inds=_set_values_using_indicator(assigned_gt_inds, index , 0)
-        elif isinstance(self.neg_iou_thr, tuple):
-            assert len(self.neg_iou_thr) == 2
-            index = tf.where(tf.logical_and(max_overlaps >=self.neg_iou_thr[0], max_overlaps < self.neg_iou_thr[1]),1,0)
-        #     index = tf.expand_dims()
-            assigned_gt_inds=_set_values_using_indicator(assigned_gt_inds, index , 0)
+            assigned_gt_inds =tf.where(tf.logical_and(max_overlaps >=0., max_overlaps < self.neg_iou_thr),0,-1)
+        else:
+            assigned_gt_inds = tf.where(tf.logical_and(max_overlaps >=self.neg_iou_thr[0], max_overlaps < self.neg_iou_thr[1]),0,-1)
+
 
         # 3. assign positive: above positive IoU threshold
         pos_inds =tf.where( max_overlaps >= self.pos_iou_thr, 1,0)
@@ -203,18 +202,20 @@ class MaxIoUAssigner(BaseAssigner):
             force_match_column_mask = tf.cast(
                 tf.reduce_max(force_match_column_indicators, 0), tf.bool)
 
-            # print(force_match_column_mask, force_match_row_ids, matches)
+            # #print(force_match_column_mask, force_match_row_ids, matches)
             assigned_gt_inds = tf.where(force_match_column_mask,
                                     force_match_row_ids + 1, assigned_gt_inds)
-
+        check_assigned = tf.where(assigned_gt_inds  > 0, assigned_gt_inds + 1, 0)
+        mask_ignore_bboxex = tf.concat([tf.convert_to_tensor([0,1]),mask_ignore_bboxex],axis=0)
+        check_min_are = tf.gather(mask_ignore_bboxex, check_assigned)
+        # check_min_are = tf.where(check_min_are >)
+        assigned_gt_inds = assigned_gt_inds * check_min_are + (1-check_min_are) * -1
         if gt_labels is not None:
-            assigned_labels =tf.ones(shape=assigned_gt_inds.shape, dtype=tf.int32)*-1
-            pos_inds = tf.where(tf.not_equal(assigned_gt_inds, 0),1, 0)
-            if tf.size(pos_inds)> 0:
-                fake_gt_labels = tf.concat([tf.convert_to_tensor([-1], dtype = gt_labels.dtype),gt_labels], axis=0)
-                assigned_labels=tf.gather(fake_gt_labels,pos_inds * (assigned_gt_inds))
+            fake_gt_labels = tf.concat([tf.convert_to_tensor([-1], dtype = gt_labels.dtype),gt_labels], axis=0)
+            pos_inds = tf.where(tf.not_equal(assigned_gt_inds, -1),1, 0)
+            assigned_labels=tf.gather(fake_gt_labels, pos_inds * assigned_gt_inds)
         else:
             assigned_labels = None
 
         return AssignResult(
-            num_gts, assigned_gt_inds, max_overlaps, labels=assigned_labels)
+             assigned_gt_inds, max_overlaps, labels=assigned_labels)
