@@ -211,7 +211,7 @@ class AnchorHead(BaseDenseHead):
         bbox_weights =tf.zeros_like(anchors)# torch.zeros_like(anchors)
 
         if not self.reg_decoded_bbox:
-            pos_bbox_targets = tf.concat([tf.convert_to_tensor([[0.,0.,0.,0.],[0.,0.,0.,0.]],tf.float32),
+            pos_bbox_targets = tf.concat([tf.convert_to_tensor([[1.,1.,2.,2.],[1.,1.,2.,2.]],tf.float32),
                                         gt_bboxes],axis=0)
             pos_bbox_targets = tf.gather(pos_bbox_targets, cate_match_ids+1)
             # print('cate', cate_match_ids + 1, pos_inds)
