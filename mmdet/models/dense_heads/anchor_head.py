@@ -187,7 +187,7 @@ class AnchorHead(BaseDenseHead):
                 num_total_neg (int): Number of negative samples in all images
         """
         # inside_flags = anchor_inside_flags(flat_anchors, valid_flags,
-        #                                    img_meta['img_shape'][:2],
+        #                                    img_meta['img_shape'][:2],bbox_targets
         #                                    self.train_cfg.allowed_border)
 
         # todos add any() flag
@@ -217,80 +217,23 @@ class AnchorHead(BaseDenseHead):
             # print('cate', cate_match_ids + 1, pos_inds)
             bbox_targets=self.bbox_coder.encode(
                     anchors,pos_bbox_targets)
-            bbox_weights = tf.tile(tf.reshape(pos_inds,[-1,1]),[1,4])
+            bbox_weights = tf.reshape(pos_inds,[-1,1])
+            bbox_targets = tf.stop_gradient(bbox_targets)
+            bbox_weights =tf.stop_gradient(bbox_weights)
         else:
             pos_bbox_targets = tf.concat([tf.convert_to_tensor([[1.,1.,2.,2.],[1.,1.,2.,2.]],tf.float32),
                                         gt_bboxes],axis=0)
             bbox_targets = tf.gather(pos_bbox_targets, cate_match_ids+1)
             
-            bbox_weights = tf.tile(tf.reshape(pos_inds,[-1,1]),[1,4])
+            bbox_weights = tf.reshape(pos_inds,[-1,1])
 
         if gt_labels is None:
             tf.print('raise implement rpn seperate')
         
         labels = sampling_result.assign_result.labels
         label_weights = pos_inds + neg_inds
-#         tf.print("labels_weights :\n",tf.math.reduce_sum(pos_inds),tf.math.reduce_sum(neg_inds))
-#         label_weights = tf.stop_gradient(label_weights)
-#         bbox_weights = tf.stop_gradient(bbox_weights)
-        # label_weights = anchors.new_zeros(num_valid_anchors, dtype=torch.float)
-        # print(bbox_targets.shape,bbox_weights.shape)
-        # print(label_weights.shape, labels.shape)
-        # print('o')
-        
-        
-        # print(pos_inds,pos_inds.shape)
-        # print(neg_inds, neg_inds.shape)
-        # print('trace size pos_inds')
-        # if tf.size(pos_inds) > 0:
-        #     if not self.reg_decoded_bbox:
-        #         pos_bbox_targets = self.bbox_coder.encode(
-        #             sampling_result.pos_bboxes, sampling_result.pos_gt_bboxes)
-        #     else:
-        #         pos_bbox_targets = sampling_result.pos_gt_bboxes
-        #     pos_inds_e = tf.expand_dims(pos_inds,axis=-1)
-        #     bbox_targets=tf.tensor_scatter_nd_update(bbox_targets,\
-        #                                             pos_inds_e,\
-        #                                             pos_bbox_targets
-        #                                             )
-        #     bbox_weights = tf.tensor_scatter_nd_add(bbox_weights,\
-        #                                             pos_inds_e,\
-        #                                             tf.fill((pos_inds.shape[0],4), 1.,)
-        #                                             )
-
-        #     if gt_labels is None:
-        #         # Only rpn gives gt_labels as None
-        #         # Foreground is the first class since v2.5.0
-        #         labels = tf.tensor_scatter_nd_update(labels, pos_inds_e, tf.fill(pos_inds.shape, 0))
-        #         # labels[pos_inds] = 0
-        #     else:
-        #         as_gt = tf.gather(gt_labels, sampling_result.pos_assigned_gt_inds)
-        #         labels = tf.tensor_scatter_nd_update(labels, pos_inds_e, as_gt)
-        #         # labels[pos_inds] = gt_labels[
-        #         #     sampling_result.pos_assigned_gt_inds]
-
-        #     if self.train_cfg.pos_weight <= 0:
-        #         label_weights = tf.tensor_scatter_nd_update(label_weights, pos_inds_e, tf.fill(pos_inds.shape,1.))
-        #         # label_weights[pos_inds] = 1.0
-        #     else:
-        #         label_weights = tf.tensor_scatter_nd_update(label_weights, pos_inds_e, tf.fill(pos_inds.shape,self.train_cfg.pos_weight))
-                
-        # if tf.size(neg_inds) > 0:
-        #     neg_inds_e = tf.expand_dims(neg_inds, axis=1)
-        #     label_weights = tf.tensor_scatter_nd_update(label_weights, neg_inds_e, tf.fill(neg_inds.shape,1.))
-            # label_weights[neg_inds] = 1.0
-
-        # map up to original set of anchors
-        # if unmap_outputs:
-        #     num_total_anchors = flat_anchors.shape[0]
-        #     labels = unmap(
-        #         labels, num_total_anchors, inds_inside,
-        #         fill=self.num_classes)  # fill bg label
-        #     label_weights = unmap(label_weights, num_total_anchors,
-        #                           inds_inside)
-        #     bbox_targets = unmap(bbox_targets, num_total_anchors, inds_inside)
-        #     bbox_weights = unmap(bbox_weights, num_total_anchors, inds_inside)
-
+        labels = tf.stop_gradient(labels)
+        label_weights = tf.stop_gradient(label_weights)
         return (labels, label_weights, bbox_targets, bbox_weights, pos_inds,
                 neg_inds, sampling_result)
 
@@ -420,7 +363,7 @@ class AnchorHead(BaseDenseHead):
             cls_score, labels, label_weights, avg_factor=num_total_samples)
         # regression loss
         bbox_targets =tf.reshape(bbox_targets,(-1, 4))
-        bbox_weights = tf.reshape(bbox_weights,(-1, 4))
+        bbox_weights = tf.reshape(bbox_weights,(-1,1))
         bbox_pred =tf.reshape(bbox_pred, (-1,4))# bbox_pred.permute(0, 2, 3, 1).reshape(-1, 4)
         if self.reg_decoded_bbox:
             # When the regression loss (e.g. `IouLoss`, `GIouLoss`)

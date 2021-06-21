@@ -106,6 +106,7 @@ class MaxIoUAssigner(BaseAssigner):
             #     gt_labels = gt_labels.cpu()
         #print('trace assigner', gt_bboxes, bboxes)
         mask_ignore_bboxex =tf.reshape(tf.where(tf.math.reduce_sum(gt_bboxes,axis=-1) < 1.,0,1),(-1,))
+#         tf.print(mask_ignore_bboxex)
         overlaps = self.iou_calculator(gt_bboxes, bboxes)
         #print(overlaps)
         # if (self.ignore_iof_thr > 0 and gt_bboxes_ignore is not None
@@ -164,6 +165,7 @@ class MaxIoUAssigner(BaseAssigner):
         # for each anchor, which gt best overlaps with it
         # for each anchor, the max iou of all gts
         #mask_ignore_bboxex shape = N,
+        x = tf.math.reduce_sum(mask_ignore_bboxex)
         max_overlaps =tf.math.reduce_max(overlaps,axis=0)
         argmax_overlaps = tf.math.argmax(overlaps, axis=0,output_type=tf.dtypes.int32)
         # for each gt, which anchor best overlaps with it
@@ -172,17 +174,20 @@ class MaxIoUAssigner(BaseAssigner):
         gt_argmax_overlaps=tf.math.argmax(overlaps, axis=1,output_type=tf.dtypes.int32)
         # 2. assign negative: below
         # the negative inds are set to be 0
+        assigned_gt_inds = tf.where( max_overlaps >= self.pos_iou_thr, argmax_overlaps + 1,-1)
         if isinstance(self.neg_iou_thr, float):
-            assigned_gt_inds =tf.where(tf.logical_and(max_overlaps >=0., max_overlaps < self.neg_iou_thr),0,-1)
+            
+            assigned_gt_inds =tf.where(tf.logical_and(max_overlaps >=0., max_overlaps < self.neg_iou_thr),0,assigned_gt_inds)
         else:
-            assigned_gt_inds = tf.where(tf.logical_and(max_overlaps >=self.neg_iou_thr[0], max_overlaps < self.neg_iou_thr[1]),0,-1)
-
-
+            assigned_gt_inds = tf.where(tf.logical_and(max_overlaps >=self.neg_iou_thr[0], max_overlaps < self.neg_iou_thr[1]),0,assigned_gt_inds)
+        
+#         tf.print(assigned_gt_inds)
         # 3. assign positive: above positive IoU threshold
-        pos_inds =tf.where( max_overlaps >= self.pos_iou_thr, 1,0)
-        value = pos_inds*(argmax_overlaps + 1) 
-
-        assigned_gt_inds =   value + (1-pos_inds)*assigned_gt_inds
+#         tf.print(max_overlaps)
+#         pos_inds =tf.where( max_overlaps >= self.pos_iou_thr, 1,0)
+#         value = pos_inds*(argmax_overlaps + 1) 
+#         tf.print(value)
+#         assigned_gt_inds =   value + (1-pos_inds)*assigned_gt_inds
         # assigned_gt_inds[pos_inds] = argmax_overlaps[pos_inds] + 1
 
         if self.match_low_quality:
@@ -194,29 +199,29 @@ class MaxIoUAssigner(BaseAssigner):
             # However, if GT bbox 2's gt_argmax_overlaps = A, bbox A's
             # assigned_gt_inds will be overwritten to be bbox B.
             # This might be the reason that it is not used in ROI Heads.
-            force_match_column_indicators = tf.one_hot(
-                        gt_argmax_overlaps, depth=tf.shape(overlaps)[1])
+#             force_match_column_indicators = tf.one_hot(
+#                         gt_argmax_overlaps, depth=tf.shape(overlaps)[1])
 
-            force_match_row_ids = tf.argmax(force_match_column_indicators, 0,
-                                            output_type=tf.int32)
+#             force_match_row_ids = tf.argmax(force_match_column_indicators, 0,
+#                                             output_type=tf.int32)
 
-            force_match_column_mask = tf.cast(
-                tf.reduce_max(force_match_column_indicators, 0), tf.bool)
+#             force_match_column_mask = tf.cast(
+#                 tf.reduce_max(force_match_column_indicators, 0), tf.bool)
 
-            # #print(force_match_column_mask, force_match_row_ids, matches)
-            assigned_gt_inds = tf.where(force_match_column_mask,
-                                    force_match_row_ids + 1, assigned_gt_inds)
-        # print(assigned_gt_inds)
-        check_assigned = tf.where(assigned_gt_inds  >= 0, assigned_gt_inds+1, 0)
+#             # #print(force_match_column_mask, force_match_row_ids, matches)
+#             assigned_gt_inds = tf.where(force_match_column_mask,
+#                                     force_match_row_ids + 1, assigned_gt_inds)
+            pass
         
-        mask_ignore_bboxex = tf.concat([tf.convert_to_tensor([0,1]),mask_ignore_bboxex],axis=0)
-        # print(mask_ignore_bboxex)
-        # print(check_assigned)
-        check_min_are = tf.gather(mask_ignore_bboxex, check_assigned)
-        # check_min_are = tf.where(check_min_are >)
-        # print(check_min_are)
-        assigned_gt_inds = assigned_gt_inds * check_min_are + (1-check_min_are) * -1
+        assigned_gt_inds = tf.where(assigned_gt_inds >x, -1 , assigned_gt_inds)
+#         check_is_fake_gt_bbox = tf.gather(mask_ignore_bboxex, argmax_overlaps)
+#         tf.print('p')
+#         tf.print(check_is_fake_gt_bbox)
+#         tf.print(assigned_gt_inds)
+#         assigned_gt_inds = assigned_gt_inds * check_is_fake_gt_bbox + (1-check_is_fake_gt_bbox) * -1
         
+#         tf.print(assigned_gt_inds)
+#         tf.print("inside")
         if gt_labels is not None:
             fake_gt_labels = tf.concat([tf.convert_to_tensor([-1], dtype = gt_labels.dtype),gt_labels], axis=0)
             pos_inds = tf.where(tf.not_equal(assigned_gt_inds, -1),1, 0)
