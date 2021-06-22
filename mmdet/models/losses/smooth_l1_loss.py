@@ -72,6 +72,10 @@ class SmoothL1Loss(tf.keras.layers.Layer):
         assert reduction_override in (None, 'none', 'mean', 'sum')
         reduction = (
             reduction_override if reduction_override else self.reduction)
+        a = tf.where(weight > 0)
+        a = tf.reshape(a,[-1,])
+        predx = tf.gather(pred,a)
+        targety =tf.gather(target,a)
         loss_bbox = self.loss_weight * smooth_l1_loss(
             pred,
             target,
@@ -80,6 +84,19 @@ class SmoothL1Loss(tf.keras.layers.Layer):
             reduction=reduction,
             avg_factor=avg_factor,
             )
+        tf.print(predx)
+        tf.print(targety)
+        x = self.loss_weight * smooth_l1_loss(
+            predx,
+            targety,
+            weight=None,
+            beta=self.beta,
+            reduction=reduction,
+            avg_factor=avg_factor,
+            )
+        tf.print(x)
+        tf.print(loss_bbox)
+        tf.print("loss-done")
         return loss_bbox
 
 
@@ -119,7 +136,19 @@ class L1Loss(tf.keras.layers.Layer):
 #         print(pred.shape,target.shape,"focal")
         reduction = (
             reduction_override if reduction_override else self.reduction)
-        print(weight.shape)
+        # print(weight.shape)
+        # a = tf.where(tf.reshape(weight,[-1,]) > 0)
+        # a = tf.reshape(a,[-1,])
+        # predx = tf.gather(pred,a)
+        # targety =tf.gather(target,a)
         loss_bbox = self.loss_weight * l1_loss(
             pred, target, weight, reduction=reduction, avg_factor=avg_factor)
+        # tf.print(predx)
+        # tf.print(targety)
+        # x = self.loss_weight * l1_loss(
+        #     predx, targety, weight=None, reduction=reduction, avg_factor=avg_factor)
+        # tf.print(x)
+        # tf.print(loss_bbox)
+        # tf.print(avg_factor)
+        # tf.print("loss-done")
         return loss_bbox

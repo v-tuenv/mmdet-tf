@@ -6,10 +6,10 @@ import json
 import sys
 sys.path.append("/home/tuenguyen/Desktop/long_pro/mmdet_tf/")
 from mmdet.core import *
-
+tf.random.set_seed(12)
 bboxes=tf.convert_to_tensor([[[ 62.66066  , 241.23769  , 279.47253  , 378.02307  ],
         [  3.6642313,   3.1684952, 511.03354  , 510.63177  ],
-        [  0.       ,   0.       ,   0.       ,   0.       ],
+        [  0.       ,   0.       ,   64.       ,   128.    ],
         [  0.       ,   0.       ,   0.       ,   0.       ],
         [  0.       ,   0.       ,   0.       ,   0.       ],
         [  0.       ,   0.       ,   0.       ,   0.       ],
@@ -75,7 +75,7 @@ model = dict(
         bbox_coder=dict(
             type='DeltaXYWHBBoxCoder',
             target_means=[.0, .0, .0, .0],
-            target_stds=[1.0, 1.0, 1.0, 1.0]),
+            target_stds=[0.2, 0.2, 0.1, 0.1]),
         loss_cls=dict(
             type='FocalLoss',
             use_sigmoid=True,
@@ -108,7 +108,7 @@ a = retina.forward_train(fake_images,
                       bboxes,
                       cate,
                       batch_size=2)
-
+tf.print(a)
 
 
 

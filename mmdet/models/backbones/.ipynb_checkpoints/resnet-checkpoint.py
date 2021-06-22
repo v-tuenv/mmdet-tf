@@ -63,21 +63,37 @@ class BasicBlock(tf.keras.layers.Layer):
         """nn.Module: normalization layer after the second convolution layer"""
         return getattr(self, self.norm2_name)
 
-    def call(self, x):
-        """Forward function."""
-
+    def call_funtion(self, x):
         def _inner_forward(x):
             identity = x
+            if hasattr(self.conv1,'not_base') and self.conv1.not_base:
+                out = self.conv1.call_funtion(x)
+            else:
+                out = self.conv1(x)
+            if self.with_norm:
+                if hasattr(self.norm1,'not_base') and self.norm1.not_base:
+                    out = self.norm1.call_funtion(out)
+                else:
+                    out = self.norm1(out)
 
-            out = self.conv1(x)
-            out = self.norm1(out)
             out = self.relu(out)
 
-            out = self.conv2(out)
-            out = self.norm2(out)
+            if hasattr(self.conv2,'not_base') and self.conv2.not_base:
+                out = self.conv2.call_funtion(out)
+            else:
+                out = self.conv2(x)
+            
+            if self.with_norm:
+                if hasattr(self.norm2,'not_base') and self.norm2.not_base:
+                    out = self.norm2.call_funtion(out)
+                else:
+                    out = self.norm2(out)
 
             if self.downsample is not None:
-                identity = self.downsample(x)
+                if hasattr(self.downsample,'not_base') and self.downsample.not_base:
+                    identity = self.downsample.call_funtion(x)
+                else:
+                    identity = self.downsample(x)
 
             out = out +  identity
 
@@ -91,6 +107,37 @@ class BasicBlock(tf.keras.layers.Layer):
         out = _inner_forward(x)
 
         out = self.relu(out)
+
+        return out
+
+    def call(self, x,training=False):
+        """Forward function."""
+
+        def _inner_forward(x,training=False):
+            identity = x
+
+            out = self.conv1(x,training=training)
+            out = self.norm1(out,training=training)
+            out = self.relu(out,training=training)
+
+            out = self.conv2(out,training=training)
+            out = self.norm2(out,training=training)
+
+            if self.downsample is not None:
+                identity = self.downsample(x,training=training)
+
+            out = out +  identity
+
+            return out
+
+        # if self.with_cp and x.requires_grad:
+        #     # out = cp.checkpoint(_inner_forward, x)
+        #     # tf.print('implement checkpint')
+        #     pass
+        
+        out = _inner_forward(x,training=training)
+
+        out = self.relu(out,training=training)
 
         return out
 
@@ -123,7 +170,7 @@ class Bottleneck(tf.keras.layers.Layer):
         if plugins is not None:
             allowed_position = ['after_conv1', 'after_conv2', 'after_conv3']
             assert all(p['position'] in allowed_position for p in plugins)
-
+        self.not_base = True
         self.inplanes = inplanes
         self.planes = planes
         self.stride = stride
@@ -203,7 +250,8 @@ class Bottleneck(tf.keras.layers.Layer):
             bias=False)
         super(Bottleneck,self).__setattr__(self.norm3_name,norm3)   
        
-
+        print("name" + self.name)
+        print("dow ", downsample)
         self.relu = tf.keras.layers.ReLU()
         self.downsample = downsample
         if self.with_plugins:
@@ -237,6 +285,7 @@ class Bottleneck(tf.keras.layers.Layer):
         return plugin_names
 
     def forward_plugin(self, x, plugin_names):
+        raise Exception("forward_plugin not implement")
         out = x
         for name in plugin_names:
             out = getattr(self, name)(x)
@@ -257,33 +306,33 @@ class Bottleneck(tf.keras.layers.Layer):
         """nn.Module: normalization layer after the third convolution layer"""
         return getattr(self, self.norm3_name)
 
-    def call(self, x):
+    def call(self, x,training=False):
         """Forward function."""
 
-        def _inner_forward(x):
+        def _inner_forward(x,training=False):
             identity = x
-            out = self.conv1(x)
-            out = self.norm1(out)
-            out = self.relu(out)
+            out = self.conv1(x,training=training)
+            out = self.norm1(out,training=training)
+            out = self.relu(out,training=training)
 
             if self.with_plugins:
                 out = self.forward_plugin(out, self.after_conv1_plugin_names)
 
-            out = self.conv2(out)
-            out = self.norm2(out)
-            out = self.relu(out)
+            out = self.conv2(out,training=training)
+            out = self.norm2(out,training=training)
+            out = self.relu(out,training=training)
 
             if self.with_plugins:
                 out = self.forward_plugin(out, self.after_conv2_plugin_names)
 
-            out = self.conv3(out)
-            out = self.norm3(out)
+            out = self.conv3(out,training=training)
+            out = self.norm3(out,training=training)
 
             if self.with_plugins:
                 out = self.forward_plugin(out, self.after_conv3_plugin_names)
 
             if self.downsample is not None:
-                identity = self.downsample(x)
+                identity = self.downsample(x,training=training)
 
             out = out + identity
 
@@ -292,12 +341,16 @@ class Bottleneck(tf.keras.layers.Layer):
         # if self.with_cp and x.requires_grad:
             # out = cp.checkpoint(_inner_forward, x)
         # else:
-        out = _inner_forward(x)
+        out = _inner_forward(x,training=training)
 
-        out = self.relu(out)
+        out = self.relu(out,training=training)
 
         return out
 
+    def call_funtion(self, x):
+        """Forward function."""
+        print("call bottneck")
+        return self(x)
 
 @BACKBONES.register_module()
 class ResNet(tf.keras.layers.Layer):
@@ -459,7 +512,12 @@ class ResNet(tf.keras.layers.Layer):
                 stage_plugins = self.make_stage_plugins(plugins, i)
             else:
                 stage_plugins = None
+            
             planes = base_channels * 2**i
+            if i==0:
+                print("first ",self.inplanes, planes,stride)
+            else:
+                print("{i} ",self.inplanes, planes)
             res_layer = self.make_res_layer(
                 block=self.block,
                 inplanes=self.inplanes,
@@ -614,20 +672,51 @@ class ResNet(tf.keras.layers.Layer):
         #     m.eval()
         #     for param in m.parameters():
         #         param.requires_grad = False
-
-    def call(self, x):
-        """Forward function."""
+    def call_funtion(self, x):
         if self.deep_stem:
-            x = self.stem(x)
+            if hasattr(self.stem,'not_base') and self.stem.not_base:
+                x = self.stem.call_funtion(x)
+            else:
+                x=self.stem(x)
         else:
-            x = self.conv1(x)
-            x = self.norm1(x)
+            if hasattr(self.conv1,'not_base') and self.conv1.not_base:
+                x=self.conv1.call_funtion(x)
+            else:
+                x = self.conv1(x)
+            if hasattr(self.norm1,'not_base') and self.norm1.not_base:
+                x=self.norm1.call_funtion(x)
+            else:
+                x = self.norm1(x)
+
+          
             x = self.relu(x)
+
         x = self.maxpool(x)
+        print(x.shape)
         outs = []
         for i, layer_name in enumerate(self.res_layers):
             res_layer = getattr(self, layer_name)
-            x = res_layer(x)
+            if hasattr(res_layer,'not_base') and res_layer.not_base:
+                x=res_layer.call_funtion(x)
+            else:
+                x = res_layer(x)
+            if i in self.out_indices:
+                outs.append(x)
+        return tuple(outs)
+
+    def call(self, x,training=False):
+        """Forward function."""
+        if self.deep_stem:
+            x = self.stem(x,training=training)
+        else:
+            x = self.conv1(x,training=training)
+            x = self.norm1(x,training=training)
+            x = self.relu(x,training=training)
+        x = self.maxpool(x,training=training)
+        outs = []
+        for i, layer_name in enumerate(self.res_layers):
+            res_layer = getattr(self, layer_name)
+            x = res_layer(x,training=training)
             if i in self.out_indices:
                 outs.append(x)
         return tuple(outs)

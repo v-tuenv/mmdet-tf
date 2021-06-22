@@ -170,7 +170,7 @@ class Bottleneck(tf.keras.layers.Layer):
         if plugins is not None:
             allowed_position = ['after_conv1', 'after_conv2', 'after_conv3']
             assert all(p['position'] in allowed_position for p in plugins)
-
+        self.not_base = True
         self.inplanes = inplanes
         self.planes = planes
         self.stride = stride
@@ -250,7 +250,8 @@ class Bottleneck(tf.keras.layers.Layer):
             bias=False)
         super(Bottleneck,self).__setattr__(self.norm3_name,norm3)   
        
-
+        print("name" + self.name)
+        print("dow ", downsample)
         self.relu = tf.keras.layers.ReLU()
         self.downsample = downsample
         if self.with_plugins:
@@ -348,71 +349,8 @@ class Bottleneck(tf.keras.layers.Layer):
 
     def call_funtion(self, x):
         """Forward function."""
-
-        def _inner_forward(x):
-            identity = x
-            if hasattr(self.conv1,'not_base') and self.conv1.not_base:
-                out = self.conv1.call_funtion(x)
-            else:
-                out = self.conv1(x)
-            if self.with_norm:
-                if hasattr(self.norm1,'not_base') and self.norm1.not_base:
-                    out = self.norm1.call_funtion(out)
-                else:
-                    out = self.norm1(out)
-
-            out = self.relu(out)
-
-
-            if self.with_plugins:
-                out = self.forward_plugin(out, self.after_conv1_plugin_names)
-
-            if hasattr(self.conv2,'not_base') and self.conv2.not_base:
-                out = self.conv2.call_funtion(out)
-            else:
-                out = self.conv2(x)
-            if self.with_norm:
-                if hasattr(self.norm2,'not_base') and self.norm2.not_base:
-                    out = self.norm2.call_funtion(out)
-                else:
-                    out = self.norm2(out)
-            out = self.relu(out)
-            
-
-            if self.with_plugins:
-                out = self.forward_plugin(out, self.after_conv2_plugin_names)
-
-            if hasattr(self.conv3,'not_base') and self.conv3.not_base:
-                out = self.conv3.call_funtion(out)
-            else:
-                out = self.conv3(x)
-            if self.with_norm:
-                if hasattr(self.norm3,'not_base') and self.norm3.not_base:
-                    out = self.norm3.call_funtion(out)
-                else:
-                    out = self.norm3(out)
-
-            if self.with_plugins:
-                out = self.forward_plugin(out, self.after_conv3_plugin_names)
-
-            if self.downsample is not None:
-                if hasattr(self.downsample,'not_base') and self.downsample.not_base:
-                    identity = self.downsample.call_funtion(x)
-                else:
-                    identity = self.downsample(x)
-
-            out = out + identity
-
-            return out
-
-        # if self.with_cp and x.requires_grad:
-            # out = cp.checkpoint(_inner_forward, x)
-        # else:
-        out = _inner_forward(x)
-
-        out = self.relu(out)
-
-        return out
+        print("call bottneck")
+        return self(x)
 
 @BACKBONES.register_module()
 class ResNet(tf.keras.layers.Layer):
@@ -574,7 +512,12 @@ class ResNet(tf.keras.layers.Layer):
                 stage_plugins = self.make_stage_plugins(plugins, i)
             else:
                 stage_plugins = None
+            
             planes = base_channels * 2**i
+            if i==0:
+                print("first ",self.inplanes, planes,stride)
+            else:
+                print("{i} ",self.inplanes, planes)
             res_layer = self.make_res_layer(
                 block=self.block,
                 inplanes=self.inplanes,
@@ -749,6 +692,7 @@ class ResNet(tf.keras.layers.Layer):
             x = self.relu(x)
 
         x = self.maxpool(x)
+        print(x.shape)
         outs = []
         for i, layer_name in enumerate(self.res_layers):
             res_layer = getattr(self, layer_name)

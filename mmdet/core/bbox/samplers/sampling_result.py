@@ -1,5 +1,6 @@
 
 
+from re import A
 from mmdet_planing.utils import util_mixins
 
 import tensorflow as tf
@@ -27,32 +28,31 @@ class SamplingResult(util_mixins.NiceRepr):
         self.neg_inds = neg_inds
         
         self.assign_result = assign_result
-#         self.pos_bboxes =tf.gather(bboxes, pos_inds)# bboxes[pos_inds]
-#         self.neg_bboxes =tf.gather(bboxes, neg_inds) # bboxes[neg_inds]
-#         self.pos_is_gt = tf.gather(gt_flags, pos_inds) # gt_flags[pos_inds]
-#         print(pos_inds,neg_inds)
-#         self.num_gts = gt_bboxes.shape[0]
-        
-#         self.pos_assigned_gt_inds =tf.gather(assign_result.gt_inds,pos_inds) - 1
-#         def f1():
-#             return tf.reshape( tf.zeros(gt_bboxes.get_shape()),(-1,4))#  torch.empty_like(gt_bboxes).view(-1, 4)
-#         def f2():
-#             return tf.gather(gt_bboxes, self.pos_assigned_gt_inds)
-#         # if tf.size(gt_bboxes) == 0:
-#         #     # hack for index error case
-#         #     self.pos_gt_bboxes =tf.reshape( tf.zeros(gt_bboxes.get_shape()),(-1,4))#  torch.empty_like(gt_bboxes).view(-1, 4)
-#         # else:
-#         #     if len(gt_bboxes.get_shape()) < 2:
-#         #         gt_bboxes = tf.reshape(gt_bboxes,(-1, 4))
+        # self.pos_bboxes =tf.gather(bboxes, pos_inds)# bboxes[pos_inds]
+        # self.pos_labels =assign_result.labels*pos_inds + (1-pos_inds)*assign_result.labels
+        # self.pos_labels = tf.where(self.pos_labels>=0)
+        # self.pos_labels = tf.gather(assign_result.labels, tf.reshape(self.pos_labels,[-1,]))
 
-#         #     self.pos_gt_bboxes =tf.gather(gt_bboxes, self.pos_assigned_gt_inds)
-#         self.pos_gt_bboxes = tf.cond(tf.size(gt_bboxes) ==0 , f1, f2)
-#         if assign_result.labels is not None:
-#             self.pos_gt_labels =tf.gather(assign_result.labels,pos_inds)
-#         else:
-#             self.pos_gt_labels = None
-#         print(self.pos_gt_bboxes, self.pos_gt_labels)
-#         print('trace done')
+        # tf.gather(pos_inds, assign_result.labels)
+        #self.gt_bbox_labels = tf.gather(gt_bboxes,assign_result.inds)
+        # self.neg_bboxes =tf.gather(bboxes, neg_inds) # bboxes[neg_inds]
+        # self.pos_is_gt = tf.gather(gt_flags, pos_inds) # gt_flags[pos_inds]
+        # print(pos_inds,neg_inds)
+        # self.num_gts = gt_bboxes.shape[0]
+        
+        # self.pos_assigned_gt_inds =assign_result.gt_inds*pos_inds - 1
+        # self.pos_assigned_gt_inds = tf.where(self.pos_assigned_gt_inds>=0,self.pos_assigned_gt_inds,0)
+        # self.pos_assigned_gt_inds = tf.where(self.pos_assigned_gt_inds>0)
+        
+        # if tf.size(gt_bboxes) == 0:
+        #     # hack for index error case
+        #     self.pos_gt_bboxes =tf.reshape( tf.zeros(gt_bboxes.get_shape()),(-1,4))#  torch.empty_like(gt_bboxes).view(-1, 4)
+        # else:
+        #     if len(gt_bboxes.get_shape()) < 2:
+        #         gt_bboxes = tf.reshape(gt_bboxes,(-1, 4))
+
+        #     self.pos_gt_bboxes =tf.gather(gt_bboxes, self.pos_assigned_gt_inds)
+        
     @property
     def bboxes(self):
         """torch.Tensor: concatenated positive and negative boxes"""
