@@ -163,6 +163,7 @@ class FPN(tf.keras.layers.Layer):
         self.fun_upsample = tf.keras.layers.UpSampling2D(**upsample_cfg)
         self.fun_max = tf.keras.layers.MaxPool2D(pool_size=1, strides=2)
         self.use_image_resize = 'size' in upsample_cfg
+    @tf.function(experimental_relax_shapes=True)
     def call(self, inputs, training=False):
         """Forward function."""
         assert len(inputs) == len(self.in_channels)

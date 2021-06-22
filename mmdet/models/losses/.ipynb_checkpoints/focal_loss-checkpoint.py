@@ -2,6 +2,7 @@ import tensorflow as tf
 
 from ..builder import LOSSES,build_loss
 from .utils import reduce_loss, weight_reduce_loss
+@tf.function(experimental_relax_shapes=True)
 def focal_loss_funtion(pred, target, alpha = 0.25, gamma = 1.5, label_smoothing = 0.):
     """y_true: shape = (batch, n_anchors, 1)
        y_pred : shape = (batch, n_anchors, num_class)
@@ -47,7 +48,7 @@ class FocalLoss(tf.keras.layers.Layer):
         self.alpha = alpha
         self.reduction = reduction
         self.loss_weight = loss_weight
-
+    @tf.function(experimental_relax_shapes=True)
     def call(self,
                 pred,
                 target,

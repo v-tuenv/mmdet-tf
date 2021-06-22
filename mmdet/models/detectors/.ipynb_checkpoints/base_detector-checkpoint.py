@@ -42,7 +42,7 @@ class BaseDetector(tf.keras.layers.Layer,  metaclass=ABCMeta):
         """
         assert isinstance(imgs, list)
         return [self.extract_feat(img) for img in imgs]
-
+    @tf.function(experimental_relax_shapes=True)
     def forward_train(self, imgs, **kwargs):
         """
         Args:

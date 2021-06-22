@@ -8,6 +8,7 @@ class SequentialLayer(tf.keras.layers.Layer):
         self.not_base = True
         self.wrap_list = []
         for layer in args:self.wrap_list.append(copy.deepcopy(layer))
+    @tf.function(experimental_relax_shapes=True)
     def call(self, inputs, training=False):
         for l in self.wrap_list:
             inputs = l(inputs,training=training)

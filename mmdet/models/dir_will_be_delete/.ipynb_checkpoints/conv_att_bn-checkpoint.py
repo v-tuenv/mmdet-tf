@@ -181,7 +181,7 @@ class ConvModule(tf.keras.layers.Layer):
         # if self.with_norm:
         #     constant_init(self.norm, 1, bias=0)
         tf.print("implement init weights in conv_att_bn.py")
-
+    @tf.function(experimental_relax_shapes=True)
     def call(self, x, activate=True, norm=True, training=False):
         for layer in self.order:
             if layer == 'conv':

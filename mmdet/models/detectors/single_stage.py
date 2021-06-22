@@ -59,6 +59,7 @@ class SingleStageDetector(BaseDetector):
             x = self.neck.call_funtion(x)
         outs = self.bbox_head.call_funtion(x)
         return outs
+    @tf.function(experimental_relax_shapes=True)
     def forward_train(self,
                       img,
                       gt_bboxes,

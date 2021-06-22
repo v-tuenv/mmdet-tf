@@ -7,6 +7,7 @@ class BaseDenseHead(tf.keras.layers.Layer, metaclass=ABCMeta):
         super(BaseDenseHead, self).__init__()
 
     @abstractmethod
+    @tf.function(experimental_relax_shapes=True)
     def mloss(self, **kwargs):
         """Compute losses of the head."""
         pass

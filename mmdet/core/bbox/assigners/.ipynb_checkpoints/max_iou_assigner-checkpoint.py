@@ -63,7 +63,7 @@ class MaxIoUAssigner(BaseAssigner):
         self.gpu_assign_thr = gpu_assign_thr
         self.match_low_quality = match_low_quality
         self.iou_calculator = build_iou_calculator(iou_calculator)
-
+    @tf.function(experimental_relax_shapes=True)
     def assign(self, bboxes, gt_bboxes, gt_labels=None):
         """Assign gt to bboxes.
         This method assign a gt bbox to every bbox (proposal/anchor), each bbox
@@ -131,7 +131,7 @@ class MaxIoUAssigner(BaseAssigner):
         #     if assign_result.labels is not None:
         #         assign_result.labels = assign_result.labels.to(device)
         return assign_result
-
+    @tf.function(experimental_relax_shapes=True)
     def assign_wrt_overlaps(self, overlaps, gt_labels=None,mask_ignore_bboxex=None):
         """Assign w.r.t. the overlaps of bboxes with gts.
         Args:
@@ -181,14 +181,7 @@ class MaxIoUAssigner(BaseAssigner):
         else:
             assigned_gt_inds = tf.where(tf.logical_and(max_overlaps >=self.neg_iou_thr[0], max_overlaps < self.neg_iou_thr[1]),0,assigned_gt_inds)
         
-#         tf.print(assigned_gt_inds)
-        # 3. assign positive: above positive IoU threshold
-#         tf.print(max_overlaps)
-#         pos_inds =tf.where( max_overlaps >= self.pos_iou_thr, 1,0)
-#         value = pos_inds*(argmax_overlaps + 1) 
-#         tf.print(value)
-#         assigned_gt_inds =   value + (1-pos_inds)*assigned_gt_inds
-        # assigned_gt_inds[pos_inds] = argmax_overlaps[pos_inds] + 1
+
 
         if self.match_low_quality:
             # Low-quality matching will overwrite the assigned_gt_inds assigned
@@ -199,35 +192,27 @@ class MaxIoUAssigner(BaseAssigner):
             # However, if GT bbox 2's gt_argmax_overlaps = A, bbox A's
             # assigned_gt_inds will be overwritten to be bbox B.
             # This might be the reason that it is not used in ROI Heads.
-#             force_match_column_indicators = tf.one_hot(
-#                         gt_argmax_overlaps, depth=tf.shape(overlaps)[1])
+            force_match_column_indicators = tf.one_hot(
+                        gt_argmax_overlaps, depth=tf.shape(overlaps)[1])
 
-#             force_match_row_ids = tf.argmax(force_match_column_indicators, 0,
-#                                             output_type=tf.int32)
+            force_match_row_ids = tf.argmax(force_match_column_indicators, 0,
+                                            output_type=tf.int32)
 
-#             force_match_column_mask = tf.cast(
-#                 tf.reduce_max(force_match_column_indicators, 0), tf.bool)
+            force_match_column_mask = tf.cast(
+                tf.reduce_max(force_match_column_indicators, 0), tf.bool)
 
-#             # #print(force_match_column_mask, force_match_row_ids, matches)
-#             assigned_gt_inds = tf.where(force_match_column_mask,
-#                                     force_match_row_ids + 1, assigned_gt_inds)
-            pass
+            
+            assigned_gt_inds = tf.where(force_match_column_mask,
+                                    force_match_row_ids + 1, assigned_gt_inds)
+            # pass
         
         assigned_gt_inds = tf.where(assigned_gt_inds >x, -1 , assigned_gt_inds)
-#         check_is_fake_gt_bbox = tf.gather(mask_ignore_bboxex, argmax_overlaps)
-#         tf.print('p')
-#         tf.print(check_is_fake_gt_bbox)
-#         tf.print(assigned_gt_inds)
-#         assigned_gt_inds = assigned_gt_inds * check_is_fake_gt_bbox + (1-check_is_fake_gt_bbox) * -1
-        
-#         tf.print(assigned_gt_inds)
-#         tf.print("inside")
+
         if gt_labels is not None:
             fake_gt_labels = tf.concat([tf.convert_to_tensor([-1], dtype = gt_labels.dtype),gt_labels], axis=0)
             pos_inds = tf.where(tf.not_equal(assigned_gt_inds, -1),1, 0)
             assigned_labels=tf.gather(fake_gt_labels, pos_inds * assigned_gt_inds)
         else:
             assigned_labels = None
-
-        return AssignResult(
-             assigned_gt_inds, max_overlaps, labels=assigned_labels)
+       
+        return assigned_gt_inds, max_overlaps,assigned_labels

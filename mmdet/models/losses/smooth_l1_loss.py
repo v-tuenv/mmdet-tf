@@ -5,6 +5,7 @@ from ..builder import LOSSES
 from .utils import weight_reduce_loss, weighted_loss
 
 @weighted_loss
+@tf.function(experimental_relax_shapes=True)
 def smooth_l1_loss(pred, target, beta=1.0):
     """Smooth L1 loss.
     Args:
@@ -22,6 +23,7 @@ def smooth_l1_loss(pred, target, beta=1.0):
                        diff - 0.5 * beta)
     return loss
 @weighted_loss
+@tf.function(experimental_relax_shapes=True)
 def l1_loss(pred, target):
     """L1 loss.
     Args:
@@ -49,7 +51,7 @@ class SmoothL1Loss(tf.keras.layers.Layer):
         self.beta = beta
         self.reduction = reduction
         self.loss_weight = loss_weight
-
+    @tf.function(experimental_relax_shapes=True)
     def call(self,
                 pred,
                 target,

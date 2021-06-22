@@ -63,7 +63,7 @@ class MaxIoUAssigner(BaseAssigner):
         self.gpu_assign_thr = gpu_assign_thr
         self.match_low_quality = match_low_quality
         self.iou_calculator = build_iou_calculator(iou_calculator)
-
+    @tf.function(experimental_relax_shapes=True)
     def assign(self, bboxes, gt_bboxes, gt_labels=None):
         """Assign gt to bboxes.
         This method assign a gt bbox to every bbox (proposal/anchor), each bbox
@@ -131,7 +131,7 @@ class MaxIoUAssigner(BaseAssigner):
         #     if assign_result.labels is not None:
         #         assign_result.labels = assign_result.labels.to(device)
         return assign_result
-
+    @tf.function(experimental_relax_shapes=True)
     def assign_wrt_overlaps(self, overlaps, gt_labels=None,mask_ignore_bboxex=None):
         """Assign w.r.t. the overlaps of bboxes with gts.
         Args:
@@ -215,5 +215,4 @@ class MaxIoUAssigner(BaseAssigner):
         else:
             assigned_labels = None
        
-        return AssignResult(
-             assigned_gt_inds, max_overlaps, labels=assigned_labels)
+        return assigned_gt_inds, max_overlaps,assigned_labels

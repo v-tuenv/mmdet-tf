@@ -32,7 +32,7 @@ class BboxOverlaps2D:
     def __init__(self, scale=1., dtype=None):
         self.scale = scale
         self.dtype = dtype
-    
+    @tf.function(experimental_relax_shapes=True)
     def __call__(self, bboxes1, bboxes2, mode='iou', is_aligned=False):
         """Calculate IoU between 2D bboxes.
         Args:
@@ -72,7 +72,7 @@ class BboxOverlaps2D:
             f'scale={self.scale}, dtype={self.dtype})'
         return repr_str
 
-
+@tf.function(experimental_relax_shapes=True)
 def bbox_overlaps(bboxes1, bboxes2, mode='iou', is_aligned=False, eps=1e-6):
     """Calculate overlap between two set of bboxes.
     FP16 Contributed by https://github.com/open-mmlab/mmdetection/pull/4889
@@ -177,9 +177,9 @@ def bbox_overlaps(bboxes1, bboxes2, mode='iou', is_aligned=False, eps=1e-6):
     # Batch dim must be the same
     # Batch dim: (B1, B2, ... Bn)
     # assert bboxes1.shape[:-2] == bboxes2.shape[:-2], print(bboxes1,bboxes2 )
-    print("trac iou calculator")
+    #print("trac iou calculator")
     batch_shape = bboxes1.shape[:-2]
-    print(bboxes1, bboxes2)
+    #print(bboxes1, bboxes2)
     rows = bboxes1.shape[-2]
     cols = bboxes2.shape[-2]
     # if is_aligned:
@@ -232,9 +232,12 @@ def bbox_overlaps(bboxes1, bboxes2, mode='iou', is_aligned=False, eps=1e-6):
 
     union = tf.maximum(union, eps)
     ious = overlap / union
-    print(ious)
+    #print(ious)
     if mode in ['iou', 'iof']:
-        ious = tf.ensure_shape(ious, [rows,cols])
+        if is_aligned:
+            ious =tf.ensure_shape(ious, [rows,])
+        else:
+            ious = tf.ensure_shape(ious, [rows,cols])
         return ious
     # calculate gious
     enclose_wh = fp16_clamp(enclosed_rb - enclosed_lt, min=0)

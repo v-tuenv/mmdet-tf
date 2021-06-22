@@ -178,7 +178,7 @@ class AnchorHead(BaseDenseHead):
         anchor_list = [multi_level_anchors for _ in range(num_imgs)]
         return anchor_list
 
-    
+    @tf.function(experimental_relax_shapes=True)
     def _get_targets_single(self,
                             anchors,
                             gt_bboxes,
@@ -228,11 +228,11 @@ class AnchorHead(BaseDenseHead):
         assign_result = self.assigner.assign(
             anchors, gt_bboxes,
             None if self.sampling else gt_labels)
-        sampling_result = self.sampler.sample(assign_result, anchors,
+        pos_inds, neg_inds= self.sampler.sample(*assign_result, anchors,
                                               gt_bboxes)
-        pos_inds = sampling_result.pos_inds
-        neg_inds = sampling_result.neg_inds
-        cate_match_ids = sampling_result.assign_result.gt_inds
+#         pos_inds = sampling_result.pos_inds
+#         neg_inds = sampling_result.neg_inds
+        cate_match_ids = assign_result[0]
         bbox_targets =anchors# torch.zeros_like(anchors)
         bbox_weights =tf.zeros_like(anchors)# torch.zeros_like(anchors)
 
@@ -271,7 +271,7 @@ class AnchorHead(BaseDenseHead):
         if gt_labels is None:
             tf.print('raise implement rpn seperate')
         
-        labels = sampling_result.assign_result.labels
+        labels = assign_result[-1]
         # tf.print(tf.gather(labels,a))
         label_weights = pos_inds + neg_inds
         # tf.print(tf.math.reduce_sum(pos_inds))
@@ -279,8 +279,8 @@ class AnchorHead(BaseDenseHead):
         labels = tf.stop_gradient(labels)
         label_weights = tf.stop_gradient(label_weights)
         return (labels, label_weights, bbox_targets, bbox_weights, pos_inds,
-                neg_inds, sampling_result)
-
+                neg_inds, assign_result)
+    @tf.function(experimental_relax_shapes=True)
     def get_targets(self,
                     anchor_list,
                     gt_bboxes_list,
@@ -373,7 +373,7 @@ class AnchorHead(BaseDenseHead):
             rest_results[i] = images_to_levels(r, num_level_anchors)
 
         return res + tuple(rest_results)
-
+    @tf.function(experimental_relax_shapes=True)
     def loss_single(self, cls_score, bbox_pred, anchors, labels, label_weights,
                     bbox_targets, bbox_weights, num_total_samples):
         """Compute loss of a single scale level.
@@ -492,7 +492,7 @@ class AnchorHead(BaseDenseHead):
             num_total_samples=num_total_samples,
             )
         return dict(loss_cls=losses_cls, loss_bbox=losses_bbox)
-
+    
     def get_bboxes(self,
                    cls_scores,
                    bbox_preds,

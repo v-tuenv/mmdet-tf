@@ -703,7 +703,7 @@ class ResNet(tf.keras.layers.Layer):
             if i in self.out_indices:
                 outs.append(x)
         return tuple(outs)
-
+    @tf.function(experimental_relax_shapes=True)
     def call(self, x,training=False):
         """Forward function."""
         if self.deep_stem:

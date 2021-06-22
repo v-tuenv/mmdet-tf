@@ -32,7 +32,7 @@ class BboxOverlaps2D:
     def __init__(self, scale=1., dtype=None):
         self.scale = scale
         self.dtype = dtype
-    
+    @tf.function(experimental_relax_shapes=True)
     def __call__(self, bboxes1, bboxes2, mode='iou', is_aligned=False):
         """Calculate IoU between 2D bboxes.
         Args:
@@ -72,7 +72,7 @@ class BboxOverlaps2D:
             f'scale={self.scale}, dtype={self.dtype})'
         return repr_str
 
-
+@tf.function(experimental_relax_shapes=True)
 def bbox_overlaps(bboxes1, bboxes2, mode='iou', is_aligned=False, eps=1e-6):
     """Calculate overlap between two set of bboxes.
     FP16 Contributed by https://github.com/open-mmlab/mmdetection/pull/4889
