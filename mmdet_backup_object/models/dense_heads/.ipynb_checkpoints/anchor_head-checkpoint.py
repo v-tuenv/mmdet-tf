@@ -471,15 +471,9 @@ class AnchorHead(BaseDenseHead):
 
         num_level_anchors = [anchors.shape[0] for anchors in anchor_list[0]]
         # concat all level anchors and flagsto a single tensor
-        # concat_anchor_list = []
-        N=tf.constant(len(anchor_list))
-        
-        concat_anchor_list = tf.TensorArray(tf.float32, size=N, dynamic_size=True)
-        for i in tf.range(len(anchor_list)):
-            concat_anchor_list.write(i,tf.concat(anchor_list[i], axis=0))
-
-        # for i in range(len(anchor_list)):
-        #     concat_anchor_list.append(tf.concat(anchor_list[i], axis=0))
+        concat_anchor_list = []
+        for i in range(len(anchor_list)):
+            concat_anchor_list.append(tf.concat(anchor_list[i], axis=0))
         print("back to main loss")
         # print(concat_anchor_list)
         all_anchor_list =   images_to_levels(concat_anchor_list,
