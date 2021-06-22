@@ -6,7 +6,8 @@ def images_to_levels(target, num_levels):
     target = tf.stack(target, axis=0)
     level_targets = []
     start = 0
-    for n in num_levels:
+    for i in range(len(num_levels)):
+        n = num_levels[i]
         end = start + n
         # level_targets.append(target[:, start:end].squeeze(0))
         level_targets.append(target[:, start:end])
@@ -16,6 +17,7 @@ def anchor_inside_flags(flat_anchors,
                         valid_flags,
                         img_shape,
                         allowed_border=0):
+
     """Check whether the anchors are inside the border.
     Args:
         flat_anchors (torch.Tensor): Flatten anchors, shape (n, 4).

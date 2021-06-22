@@ -199,10 +199,21 @@ class ConvModule(tf.keras.layers.Layer):
             if layer == 'conv':
                 if self.with_explicit_padding:
                     x = self.padding_layer(x)
-                x = self.conv(x,training=training)
+                x = self.conv(x)
             elif layer == 'norm' and norm and self.with_norm:
                 x = self.norm(x)
             elif layer == 'act' and activate and self.with_activation:
                 x = self.activate(x)
         return x
     
+    def build_funtion_api_with_object_serializer(self, x, activate=True, norm=True):
+        for layer in self.order:
+            if layer == 'conv':
+                if self.with_explicit_padding:
+                    x = self.padding_layer(x)
+                x = self.conv(x)
+            elif layer == 'norm' and norm and self.with_norm:
+                x = self.norm(x)
+            elif layer == 'act' and activate and self.with_activation:
+                x = self.activate(x)
+        return x

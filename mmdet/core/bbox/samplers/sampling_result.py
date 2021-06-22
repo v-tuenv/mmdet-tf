@@ -1,7 +1,7 @@
 
 
 from re import A
-from mmdet_planing.utils import util_mixins
+from mmdet.utils import util_mixins
 
 import tensorflow as tf
 class SamplingResult(util_mixins.NiceRepr):
