@@ -50,6 +50,15 @@ class SingleStageDetector(BaseDetector):
         outs = self.bbox_head(x,training=training)
         return outs
    
+    def call_funtion(self, img):
+        """Used for computing network flops.
+        See `mmdetection/tools/analysis_tools/get_flops.py`
+        """
+        x = self.backbone.call_funtion(img)
+        if self.with_neck:
+            x = self.neck.call_funtion(x)
+        outs = self.bbox_head.call_funtion(x)
+        return outs
     def forward_train(self,
                       img,
                       gt_bboxes,

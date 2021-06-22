@@ -130,7 +130,33 @@ class AnchorHead(BaseDenseHead):
         """
         print('trace call')
         return multi_apply(self.forward_single, feats,training=training)
-
+    
+    def call_funtion(self, feats, training=False):
+        """Forward features from the upstream network.
+        Args:
+            feats (tuple[Tensor]): Features from the upstream network, each is
+                a 4D-tensor.
+        Returns:
+            tuple: A tuple of classification scores and bbox prediction.
+                - cls_scores (list[Tensor]): Classification scores for all \
+                    scale levels, each is a 4D-tensor, the channels number \
+                    is num_anchors * num_classes.
+                - bbox_preds (list[Tensor]): Box energies / deltas for all \
+                    scale levels, each is a 4D-tensor, the channels number \
+                    is num_anchors * 4.
+        """
+        print('trace call')
+        out = []
+        out2=[]
+        for v in feats:
+            cls_score = self.conv_cls(v)
+            bbox_pred = self.conv_reg(v)
+            out.append(cls_score)
+            out2.append(bbox_pred)
+#             return cls_score, bbox_pred
+        return out,out2
+#         return multi_apply(self.forward_single, feats,training=training)
+    
     def get_anchors(self, featmap_sizes,num_imgs):
         """Get anchors according to feature map sizes.
         Args:
@@ -211,15 +237,30 @@ class AnchorHead(BaseDenseHead):
         bbox_weights =tf.zeros_like(anchors)# torch.zeros_like(anchors)
 
         if not self.reg_decoded_bbox:
-            pos_bbox_targets = tf.concat([tf.convert_to_tensor([[1.,1.,2.,2.],[1.,1.,2.,2.]],tf.float32),
+            pos_bbox_targets = tf.concat([tf.convert_to_tensor([[1.,1.,1.,1.],[1.,1.,1.,1.]],tf.float32),
                                         gt_bboxes],axis=0)
             pos_bbox_targets = tf.gather(pos_bbox_targets, cate_match_ids+1)
+            # a=tf.where(cate_match_ids>0)
+            # a=tf.reshape(a,[-1,])
+            # x=tf.gather(cate_match_ids,a)
             # print('cate', cate_match_ids + 1, pos_inds)
+            # b = tf.gather(pos_bbox_targets,a)
+            # an = tf.gather(anchors,a)
+            # tf.print(a)
+            # tf.print(b)
+            # tf.print(an)
             bbox_targets=self.bbox_coder.encode(
                     anchors,pos_bbox_targets)
+            # tt  =tf.gather(bbox_targets,a)
+            # tf.print(tt)
             bbox_weights = tf.reshape(pos_inds,[-1,1])
+            # tf.print(tf.math.reduce_sum(bbox_weights))
+            # bb = tf.gather(bbox_weights,a)
+            # tf.print(bb)
             bbox_targets = tf.stop_gradient(bbox_targets)
             bbox_weights =tf.stop_gradient(bbox_weights)
+
+
         else:
             pos_bbox_targets = tf.concat([tf.convert_to_tensor([[1.,1.,2.,2.],[1.,1.,2.,2.]],tf.float32),
                                         gt_bboxes],axis=0)
@@ -231,7 +272,10 @@ class AnchorHead(BaseDenseHead):
             tf.print('raise implement rpn seperate')
         
         labels = sampling_result.assign_result.labels
+        # tf.print(tf.gather(labels,a))
         label_weights = pos_inds + neg_inds
+        # tf.print(tf.math.reduce_sum(pos_inds))
+        # tf.print(tf.math.reduce_sum(neg_inds))
         labels = tf.stop_gradient(labels)
         label_weights = tf.stop_gradient(label_weights)
         return (labels, label_weights, bbox_targets, bbox_weights, pos_inds,
@@ -421,20 +465,10 @@ class AnchorHead(BaseDenseHead):
         
         (labels_list, label_weights_list, bbox_targets_list, bbox_weights_list,
          num_total_pos, num_total_neg) = cls_reg_targets
-#         a = tf.where(label_weights_list[0][0,...] ==1 )
-#         b = tf.where(bbox_weights_list[0][0,...] !=0)
-# #         a=tf.reshape(a,(-1,))
-# #         b = tf.reshape(b,(-1,))
-#         print(a,b)
-#         print(labels_list[0])
-#         print(tf.gather(label_weights_list[0][0,...],a))
-# #         print(tf.gather(labels_list[0],a))
-# #         print(tf.gather(bbox_targets_list[0],a))
-#         print(num_total_pos,num_total_neg)
+
         num_total_samples = (
             num_total_pos + num_total_neg if self.sampling else num_total_pos)
-        # tf.print(num_total_samples,"num total")
-        # anchor number of multi levels
+
         num_level_anchors = [anchors.shape[0] for anchors in anchor_list[0]]
         # concat all level anchors and flagsto a single tensor
         concat_anchor_list = []

@@ -87,7 +87,8 @@ class RetinaHead(AnchorHead):
         self.reg_convs = SequentialLayer(reg_convs)
         self.retina_cls =tf.keras.layers.Conv2D(self.num_anchors * self.cls_out_channels,3,padding='SAME')
         self.retina_reg = tf.keras.layers.Conv2D(self.num_anchors *4, 3 , padding='SAME')
-    def forward_single(self, x):
+    @tf.function(experimental_relax_shapes=True)
+    def forward_single(self, x,training=False):
         """Forward feature of a single scale level.
         Args:
             x (Tensor): Features of a single scale level.
@@ -98,10 +99,42 @@ class RetinaHead(AnchorHead):
                 bbox_pred (Tensor): Box energies / deltas for a single scale
                     level, the channels number is num_anchors * 4.
         """
+        print("call retinahead")
         cls_feat = x
         reg_feat = x
-        cls_feat = self.cls_convs(x)
-        reg_feat = self.reg_convs(x)
-        cls_score = self.retina_cls(cls_feat)
-        bbox_pred = self.retina_reg(reg_feat)
+        cls_feat = self.cls_convs(x,training=training)
+        reg_feat = self.reg_convs(x,training=training)
+        cls_score = self.retina_cls(cls_feat,training=training)
+        bbox_pred = self.retina_reg(reg_feat,training=training)
         return cls_score, bbox_pred
+    
+    
+    def call_funtion(self, feats, training=False):
+        """Forward features from the upstream network.
+        Args:
+            feats (tuple[Tensor]): Features from the upstream network, each is
+                a 4D-tensor.
+        Returns:
+            tuple: A tuple of classification scores and bbox prediction.
+                - cls_scores (list[Tensor]): Classification scores for all \
+                    scale levels, each is a 4D-tensor, the channels number \
+                    is num_anchors * num_classes.
+                - bbox_preds (list[Tensor]): Box energies / deltas for all \
+                    scale levels, each is a 4D-tensor, the channels number \
+                    is num_anchors * 4.
+        """
+        print('trace call')
+        out = []
+        out2=[]
+        for x in feats:
+            cls_feat = x
+            reg_feat = x
+            cls_feat = self.cls_convs(x)
+            reg_feat = self.reg_convs(x)
+            cls_score = self.retina_cls(cls_feat)
+            bbox_pred = self.retina_reg(reg_feat)
+            out.append(cls_score)
+            out2.append(bbox_pred)
+#             return cls_score, bbox_pred
+        return out,out2
+#         return multi_apply(self.forward_single, feats,training=training)

@@ -130,7 +130,33 @@ class AnchorHead(BaseDenseHead):
         """
         print('trace call')
         return multi_apply(self.forward_single, feats,training=training)
-
+    
+    def call_funtion(self, feats, training=False):
+        """Forward features from the upstream network.
+        Args:
+            feats (tuple[Tensor]): Features from the upstream network, each is
+                a 4D-tensor.
+        Returns:
+            tuple: A tuple of classification scores and bbox prediction.
+                - cls_scores (list[Tensor]): Classification scores for all \
+                    scale levels, each is a 4D-tensor, the channels number \
+                    is num_anchors * num_classes.
+                - bbox_preds (list[Tensor]): Box energies / deltas for all \
+                    scale levels, each is a 4D-tensor, the channels number \
+                    is num_anchors * 4.
+        """
+        print('trace call')
+        out = []
+        out2=[]
+        for v in feats:
+            cls_score = self.conv_cls(v)
+            bbox_pred = self.conv_reg(v)
+            out.append(cls_score)
+            out2.append(bbox_pred)
+#             return cls_score, bbox_pred
+        return out,out2
+#         return multi_apply(self.forward_single, feats,training=training)
+    
     def get_anchors(self, featmap_sizes,num_imgs):
         """Get anchors according to feature map sizes.
         Args:
