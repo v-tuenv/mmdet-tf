@@ -99,7 +99,6 @@ class RetinaHead(AnchorHead):
                 bbox_pred (Tensor): Box energies / deltas for a single scale
                     level, the channels number is num_anchors * 4.
         """
-        print("call retinahead")
         cls_feat = x
         reg_feat = x
         cls_feat = self.cls_convs(x,training=training)
@@ -179,9 +178,10 @@ class RetinaHeadSpaceSTORM(AnchorHeadSpaceSTORM):
                          std=0.01,
                          bias_prob=0.01)),
                  **kwargs):
-        self.set_attr_serializer('stacked_convs',stacked_convs)
-        self.set_attr_serializer('conv_cfg',conv_cfg)
-        self.set_attr_serializer('norm_cfg',norm_cfg)
+        self.stacked_convs =stacked_convs
+        self.conv_cfg = conv_cfg
+        self.norm_cfg = norm_cfg
+       
         super(RetinaHeadSpaceSTORM, self).__init__(
             num_classes,
             in_channels,
@@ -202,35 +202,41 @@ class RetinaHeadSpaceSTORM(AnchorHeadSpaceSTORM):
             if i==0:
                 ich=chn
 
-            cls_convs.append(
-                ConvModule(
-                    chn,
-                    self.feat_channels,
-                    3,
-                    stride=1,
-                    padding=1,
-                    conv_cfg=self.conv_cfg,
-                    norm_cfg=self.norm_cfg))
-            reg_convs.append(
-                ConvModule(
-                    chn,
-                    self.feat_channels,
-                    3,
-                    stride=1,
-                    padding=1,
-                    conv_cfg=self.conv_cfg,
-                    norm_cfg=self.norm_cfg))
+            cls_convs.extend(
+                [
+                tf.keras.layers.Conv2D(self.feat_channels,3,strides=1,padding='same'),
+                tf.keras.layers.ReLU()])
+                # ConvModule(
+                #     chn,
+                #     self.feat_channels,
+                #     3,
+                #     stride=1,
+                #     padding=1,
+                #     conv_cfg=self.conv_cfg,
+                #     norm_cfg=self.norm_cfg))
+            reg_convs.extend(
+                [
+                tf.keras.layers.Conv2D(self.feat_channels,3,strides=1,padding='same'),
+                tf.keras.layers.ReLU()
+                ]
+            )
+                # ConvModule(
+                #     chn,
+                #     self.feat_channels,
+                #     3,
+                #     stride=1,
+                #     padding=1,
+                #     conv_cfg=self.conv_cfg,
+                #     norm_cfg=self.norm_cfg))
 
         self.cls_convs = tf.keras.Sequential(cls_convs)# SequentialLayer(cls_convs)
-        self.cls_convs.build((None,None,None,ich))
         self.reg_convs = tf.keras.Sequential(reg_convs)
-        self.reg_convs.build((None,None,None,ich))
         self.retina_cls =tf.keras.layers.Conv2D(self.num_anchors * self.cls_out_channels,3,padding='SAME',bias_initializer=tf.constant_initializer(-np.log((1 - 0.01) / 0.01)),)
         self.retina_reg = tf.keras.layers.Conv2D(self.num_anchors *4, 3 , padding='SAME',kernel_initializer=tf.random_normal_initializer(stddev=0.01),)
 
 
-    @tf.function(experimental_relax_shapes=True)
-    def forward_single(self, x,training=False):
+    
+    def forward_single(self, x):
         """Forward feature of a single scale level.
         Args:
             x (Tensor): Features of a single scale level.
@@ -242,12 +248,13 @@ class RetinaHeadSpaceSTORM(AnchorHeadSpaceSTORM):
                     level, the channels number is num_anchors * 4.
         """
         print("call retinahead")
-        cls_feat = x
-        reg_feat = x
-        cls_feat = self.cls_convs(x,training=training)
-        reg_feat = self.reg_convs(x,training=training)
-        cls_score = self.retina_cls(cls_feat,training=training)
-        bbox_pred = self.retina_reg(reg_feat,training=training)
+        cls_feat=self.cls_convs(x)
+        reg_feat=self.reg_convs(x)
+
+       
+        
+        cls_score = self.retina_cls(cls_feat)
+        bbox_pred = self.retina_reg(reg_feat)
         return cls_score, bbox_pred
     
     

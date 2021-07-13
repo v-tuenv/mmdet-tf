@@ -1,6 +1,10 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import applications
+from tensorflow.python.keras.engine.input_layer import Input
+from tensorflow.python.keras.engine.sequential import Sequential
+from tensorflow.python.keras.layers.convolutional import Conv2D
+from tensorflow.python.ops.gen_array_ops import expand_dims
 from ..dir_will_be_delete.conv import build_conv_layer
 from ..dir_will_be_delete.norm import build_norm_layer
 from ..dir_will_be_delete.mix_layers import SequentialLayer
@@ -43,20 +47,15 @@ class ResLayer(tf.keras.Sequential):
                 downsample.append(
                     keras.layers.AveragePooling2D(pool_size=(stride, stride), stride=stride)
                 )
-
             downsample.extend([
-                build_conv_layer(
-                    conv_cfg,
-                    # inplanes, # don;t need previous filter
-                    planes * block.expansion,
-                    kernel_size=1,
-                    strides=conv_stride,
-                    use_bias=False),
-                build_norm_layer(norm_cfg, planes * block.expansion)[1]
+                [
+                    tf.keras.layers.Conv2D(planes*block.expansion, 1, strides=conv_stride,use_bias=False),
+                    tf.keras.layers.BatchNormalization()
+                ]
+                
             ]
-
             )
-            downsample =SequentialLayer(downsample)
+            downsample =tf.keras.Sequential(*downsample)
 
         layers = []
         if downsample_first:

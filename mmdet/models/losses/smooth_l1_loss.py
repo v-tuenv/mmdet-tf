@@ -16,8 +16,8 @@ def smooth_l1_loss(pred, target, beta=1.0):
     Returns:
         torch.Tensor: Calculated loss
     """
-    # assert beta > 0
-    # assert pred.size() == target.size() and target.numel() > 0
+    assert beta > 0
+    assert pred.size() == target.size() and target.numel() > 0
     diff = tf.math.abs(pred - target)
     loss = tf.where(diff < beta, 0.5 * diff * diff / beta,
                        diff - 0.5 * beta)
@@ -34,7 +34,11 @@ def l1_loss(pred, target):
     """
     
     loss = tf.math.abs(pred - target)
+<<<<<<< HEAD
     return loss 
+=======
+    return loss
+>>>>>>> parent of 00a10b4... add work
 @LOSSES.register_module()
 class SmoothL1Loss(tf.keras.layers.Layer):
     """Smooth L1 loss.
@@ -85,6 +89,7 @@ class SmoothL1Loss(tf.keras.layers.Layer):
             beta=self.beta,
             reduction=reduction,
             avg_factor=avg_factor,
+<<<<<<< HEAD
             )
         tf.print(predx)
         tf.print(targety)
@@ -99,6 +104,9 @@ class SmoothL1Loss(tf.keras.layers.Layer):
         tf.print(x)
         tf.print(loss_bbox)
         tf.print("loss-done")
+=======
+            **kwargs)
+>>>>>>> parent of 00a10b4... add work
         return loss_bbox
 
 
@@ -138,11 +146,14 @@ class L1Loss(tf.keras.layers.Layer):
 #         print(pred.shape,target.shape,"focal")
         reduction = (
             reduction_override if reduction_override else self.reduction)
+<<<<<<< HEAD
         # print(weight.shape)
         # a = tf.where(tf.reshape(weight,[-1,]) > 0)
         # a = tf.reshape(a,[-1,])
         # predx = tf.gather(pred,a)
         # targety =tf.gather(target,a)
+=======
+>>>>>>> parent of 00a10b4... add work
         loss_bbox = self.loss_weight * l1_loss(
             pred, target, weight, reduction=reduction, avg_factor=avg_factor)
         # tf.print(predx)

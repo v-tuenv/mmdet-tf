@@ -1,12 +1,13 @@
 import os,sys,json
 from pathlib import Path
 import tensorflow as tf
+tf.config.run_functions_eagerly(False)
 PATH =Path(os.getcwd()).parent
 sys.path.append(str(PATH.absolute()) + "/")
 PATH =Path(os.getcwd())
 sys.path.append(str(PATH.absolute()) + "/")
 from mmdet import core
-config = dict(type='BboxOverlaps2D', scale=1.)
+config = dict(type='BboxOverlaps2DIOU', scale=1.)
 iou_cal = core.build_iou_calculator(config)
 print(iou_cal)
 bboxes1 = tf.convert_to_tensor(
@@ -24,6 +25,7 @@ bboxes2 = tf.convert_to_tensor(
     ], dtype=tf.float32
 )
 overlaps = iou_cal(bboxes1, bboxes2)
+
 assert overlaps.shape == (3, 3)
 overlaps = iou_cal(bboxes1, bboxes2, is_aligned=True)
 assert overlaps.shape == (3, )

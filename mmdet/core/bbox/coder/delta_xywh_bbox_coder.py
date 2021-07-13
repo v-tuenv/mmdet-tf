@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+from tensorflow.python.ops.gen_math_ops import mean
 
 from ..builder import BBOX_CODERS
 from .base_bbox_coder import BaseBBoxCoder
@@ -48,7 +49,6 @@ class DeltaXYWHBBoxCoder(BaseBBoxCoder):
         self.clip_border = clip_border
         self.add_ctr_clamp = add_ctr_clamp
         self.ctr_clamp = ctr_clamp
-    @tf.function(experimental_relax_shapes=True)
     def encode(self, bboxes, gt_bboxes):
         """Get box regression transformation deltas that can be used to
         transform the ``bboxes`` into the ``gt_bboxes``.
@@ -59,12 +59,8 @@ class DeltaXYWHBBoxCoder(BaseBBoxCoder):
         Returns:
             torch.Tensor: Box transformation deltas
         """
-
-        assert bboxes.shape[0] == gt_bboxes.shape[0]
-        assert bboxes.shape[-1] == gt_bboxes.shape[-1] == 4
         encoded_bboxes = bbox2delta(bboxes, gt_bboxes, self.means, self.stds)
         return encoded_bboxes
-    @tf.function(experimental_relax_shapes=True)
     def decode(self,
                bboxes,
                pred_bboxes,
@@ -97,8 +93,8 @@ class DeltaXYWHBBoxCoder(BaseBBoxCoder):
 
         return decoded_bboxes
 
-@tf.function(experimental_relax_shapes=True)
-def bbox2delta(proposals, gt, means=(0., 0., 0., 0.), stds=(1., 1., 1., 1.), eps=1e-4):
+
+def bbox2delta(proposals, gt, means=(0., 0., 0., 0.), stds=(1., 1., 1., 1.)):
     """Compute deltas of proposals w.r.t. gt.
     We usually compute the deltas of x, y, w, h of proposals w.r.t ground
     truth bboxes to get regression target.
@@ -119,31 +115,27 @@ def bbox2delta(proposals, gt, means=(0., 0., 0., 0.), stds=(1., 1., 1., 1.), eps
     gt = tf.cast(gt, tf.float32) # gt.float()
     px = (proposals[..., 0] + proposals[..., 2]) * 0.5
     py = (proposals[..., 1] + proposals[..., 3]) * 0.5
-    pw = proposals[..., 2] - proposals[..., 0] + eps
-    ph = proposals[..., 3] - proposals[..., 1] + eps
+    pw = proposals[..., 2] - proposals[..., 0]
+    ph = proposals[..., 3] - proposals[..., 1]
 
     gx = (gt[..., 0] + gt[..., 2]) * 0.5
     gy = (gt[..., 1] + gt[..., 3]) * 0.5
-    gw = gt[..., 2] - gt[..., 0] + eps
-    gh = gt[..., 3] - gt[..., 1] + eps
+    gw = gt[..., 2] - gt[..., 0]
+    gh = gt[..., 3] - gt[..., 1]
 
-    dx = (gx - px) / pw
+    dx = (gx - px) / pw 
+    dx = (dx - means[0]) / stds[0]
     dy = (gy - py) / ph
+    dy = (dy-means[1]) / stds[1]
     dw = tf.math.log(gw / pw)
+    dw = (dw-means[2]) / stds[2]
+    
     dh = tf.math.log(gh / ph)
+    dh = (dh-means[3]) / stds[3]
     deltas = tf.stack([dx, dy, dw, dh], axis=-1)
-
-    means = tf.convert_to_tensor(means, tf.float32)
-    means = tf.expand_dims(means, 0)
-    stds = tf.convert_to_tensor(stds)
-    stds=tf.expand_dims(stds, 0)
-   
-    deltas =tf.math.subtract(deltas, means) 
-    deltas = tf.math.divide(deltas, stds)
 
     return deltas
 
-@tf.function(experimental_relax_shapes=True)
 def delta2bbox(rois,
                deltas,
                means=(0., 0., 0., 0.),
@@ -203,35 +195,32 @@ def delta2bbox(rois,
     means = tf.convert_to_tensor(means, tf.float32)
     means  = tf.reshape(means, (1,-1))
     means = tf.tile(means, [1,deltas.shape[-1] // 4])
-   
-
     stds = tf.convert_to_tensor(stds, tf.float32)
     stds  = tf.reshape(stds, (1,-1))
     stds = tf.tile(stds, [1,deltas.shape[-1] // 4])
-
     denorm_deltas = deltas * stds + means
-    dx = denorm_deltas[..., 0::4]
-    dy = denorm_deltas[..., 1::4]
-    dw = denorm_deltas[..., 2::4]
-    dh = denorm_deltas[..., 3::4]
-
+    
+    dx = denorm_deltas[..., 0]
+    dy = denorm_deltas[..., 1]
+    dw = denorm_deltas[..., 2]
+    dh = denorm_deltas[..., 3]
     x1, y1 = rois[..., 0], rois[..., 1]
     x2, y2 = rois[..., 2], rois[..., 3]
     # Compute center of each roi
     px = ((x1 + x2) * 0.5)
     py = ((y1 + y2) * 0.5)
-    px = tf.expand_dims(px, axis=-1)
-    py = tf.expand_dims(py, axis=-1)
-    px = tf.broadcast_to(px, dx.get_shape())
-    py = tf.broadcast_to(py, dy.get_shape())
+    # px = tf.expand_dims(px, axis=-1)
+    # py = tf.expand_dims(py, axis=-1)
+    # px = tf.broadcast_to(px, dx.get_shape())
+    # py = tf.broadcast_to(py, dy.get_shape())
 
     # Compute width/height of each roi
     pw = (x2 - x1)
     ph = (y2 - y1)
-    pw = tf.expand_dims(pw, axis=-1)
-    pw = tf.broadcast_to(pw, dw.get_shape())
-    ph = tf.expand_dims(ph, axis=-1)
-    ph = tf.broadcast_to(ph, dw.get_shape())
+    # pw = tf.expand_dims(pw, axis=-1)
+    # pw = tf.broadcast_to(pw, dw.get_shape())
+    # ph = tf.expand_dims(ph, axis=-1)
+    # ph = tf.broadcast_to(ph, dw.get_shape())
     dx_width = pw * dx
     dy_height = ph * dy
 
@@ -257,7 +246,7 @@ def delta2bbox(rois,
     y2 = gy + gh * 0.5
 
     bboxes = tf.stack([x1, y1, x2, y2], axis=-1)
-    bboxes = tf.reshape(bboxes, deltas.get_shape())
+    # bboxes = tf.reshape(bboxes, deltas.get_shape())
     
 
     if clip_border and max_shape is not None:

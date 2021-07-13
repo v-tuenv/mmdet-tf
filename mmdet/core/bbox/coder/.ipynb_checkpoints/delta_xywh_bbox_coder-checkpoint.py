@@ -97,8 +97,13 @@ class DeltaXYWHBBoxCoder(BaseBBoxCoder):
 
         return decoded_bboxes
 
+<<<<<<< HEAD
 @tf.function(experimental_relax_shapes=True)
 def bbox2delta(proposals, gt, means=(0., 0., 0., 0.), stds=(1., 1., 1., 1.), eps=1e-4):
+=======
+
+def bbox2delta(proposals, gt, means=(0., 0., 0., 0.), stds=(1., 1., 1., 1.)):
+>>>>>>> parent of 00a10b4... add work
     """Compute deltas of proposals w.r.t. gt.
     We usually compute the deltas of x, y, w, h of proposals w.r.t ground
     truth bboxes to get regression target.
@@ -119,13 +124,13 @@ def bbox2delta(proposals, gt, means=(0., 0., 0., 0.), stds=(1., 1., 1., 1.), eps
     gt = tf.cast(gt, tf.float32) # gt.float()
     px = (proposals[..., 0] + proposals[..., 2]) * 0.5
     py = (proposals[..., 1] + proposals[..., 3]) * 0.5
-    pw = proposals[..., 2] - proposals[..., 0] + eps
-    ph = proposals[..., 3] - proposals[..., 1] + eps
+    pw = proposals[..., 2] - proposals[..., 0]
+    ph = proposals[..., 3] - proposals[..., 1]
 
     gx = (gt[..., 0] + gt[..., 2]) * 0.5
     gy = (gt[..., 1] + gt[..., 3]) * 0.5
-    gw = gt[..., 2] - gt[..., 0] + eps
-    gh = gt[..., 3] - gt[..., 1] + eps
+    gw = gt[..., 2] - gt[..., 0]
+    gh = gt[..., 3] - gt[..., 1]
 
     dx = (gx - px) / pw
     dy = (gy - py) / ph
