@@ -1,7 +1,7 @@
 version: '2'
 
  
-
+tue
 services:
   redis:
     image: docker.io/bitnami/redis:6.2
