@@ -166,7 +166,7 @@ class MaxIoUAssigner(BaseAssigner):
                                     force_match_row_ids + 1, assigned_gt_inds)
             # pass
         
-            tf.print('warining line 163 max_iou_assigner.py')
+            # tf.print('warining line 163 max_iou_assigner.py')
         # print(assigned_gt_inds)
         
         if gt_labels is not None:
