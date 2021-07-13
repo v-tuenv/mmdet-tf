@@ -16,7 +16,7 @@ class PseudoSampler(BaseSampler):
     def _sample_neg(self, **kwargs):
         """Sample negative samples."""
         raise NotImplementedError
-    
+    @tf.function(experimental_relax_shapes=True)
     def sample(self,assigned_gt_inds, max_overlaps,assigned_labels, bboxes, gt_bboxes, **kwargs):
         """Directly returns the positive and negative indices  of samples.
         Args:
@@ -32,5 +32,6 @@ class PseudoSampler(BaseSampler):
             sh= -1
         pos_inds =tf.reshape(tf.where(assigned_gt_inds > 0,1,0),(sh,))
         neg_inds = tf.where(assigned_gt_inds==0,1,0)
-        neg_inds = tf.reshape(neg_inds,(sh,))
+        neg_inds = tf.reshape(neg_inds,[sh,])
+        
         return pos_inds,neg_inds

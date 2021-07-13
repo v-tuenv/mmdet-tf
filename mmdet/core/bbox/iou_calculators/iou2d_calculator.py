@@ -24,66 +24,14 @@ def fp16_clamp(x, min=None, max=None):
     
     raise ValueError(min,max)
 
-@IOU_CALCULATORS.register_module()
-class BboxOverlaps2DIOU():
-    def __init__(self,scale=1., dtype=None):
-        # super().__init__()
-        self.scale = scale
-        self.dtype = dtype
-    def __call__(self, bboxes1, bboxes2,is_aligned=False):
-        batch_shape = bboxes1.shape[:-2]
-        rows = bboxes1.shape[-2]
-        cols = bboxes2.shape[-2]
-        if rows * cols == 0:
-            if is_aligned:
-                return tf.zeros(shape=batch_shape + (rows,), dtype=bboxes1.dtype)
-            else:
-                return tf.zeros(shape=batch_shape + (rows,cols), dtype=bboxes1.dtype)
-        area1 = (bboxes1[..., 2] - bboxes1[..., 0]) * (
-            bboxes1[..., 3] - bboxes1[..., 1])
-        area2 = (bboxes2[..., 2] - bboxes2[..., 0]) * (
-            bboxes2[..., 3] - bboxes2[..., 1])
-        if is_aligned:
-            lt = tf.maximum(bboxes1[..., :2], bboxes2[..., :2])  # [B, rows, 2]
-            rb = tf.minimum(bboxes1[..., 2:], bboxes2[..., 2:])  # [B, rows, 2]
-
-            wh = fp16_clamp(rb - lt, min=0.)
-            overlap = wh[..., 0] * wh[..., 1]
-
-            
-            union = area1 + area2 - overlap
-            
-            
-        else:
-            lt = tf.maximum(bboxes1[..., :, None, :2],
-                        bboxes2[..., None, :, :2])  # [B, rows, cols, 2]
-            rb = tf.minimum(bboxes1[..., :, None, 2:],
-                        bboxes2[..., None, :, 2:])  # [B, rows, cols, 2]
-
-
-            wh = fp16_clamp(rb - lt, min=0.)
-            overlap = wh[..., 0] * wh[..., 1]
-            union = area1[..., None] + area2[..., None, :] - overlap
-        
-
-        union = tf.maximum(union, 1e-4)
-        ious = overlap / union
-        if is_aligned:
-            ious = tf.ensure_shape(ious, [rows,])
-        else:
-            ious=tf.ensure_shape(ious,[rows,cols])
-        return ious
-
-
 
 @IOU_CALCULATORS.register_module()
 class BboxOverlaps2D:
     """2D Overlaps (e.g. IoUs, GIoUs) Calculator."""
 
-    def __init__(self, scale=1., dtype=None, mode='iou'):
+    def __init__(self, scale=1., dtype=None):
         self.scale = scale
         self.dtype = dtype
-        self.mode = mode
     @tf.function(experimental_relax_shapes=True)
     def __call__(self, bboxes1, bboxes2, mode='iou', is_aligned=False):
         """Calculate IoU between 2D bboxes.
@@ -115,8 +63,8 @@ class BboxOverlaps2D:
             bboxes2 = cast_tensor_type(bboxes2, self.scale, self.dtype)
             overlaps = bbox_overlaps(bboxes1, bboxes2, mode, is_aligned)
             return overlaps
-        with tf.device("cpu"):
-            return bbox_overlaps(bboxes1, bboxes2, mode, is_aligned)
+
+        return bbox_overlaps(bboxes1, bboxes2, mode, is_aligned)
 
     def __repr__(self):
         """str: a string describing the module"""

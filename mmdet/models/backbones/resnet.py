@@ -30,7 +30,7 @@ class BasicBlock(tf.keras.layers.Layer):
 
         self.convs1 = tf.keras.Sequential(
             [
-            
+            tf.keras.Input(shape=(None,None,inplanes)),
             tf.keras.layers.Conv2D(planes,3, strides=stride, padding='same', dilation_rate =dilation,use_bias=False  ),
             tf.keras.layers.BatchNormalization(),
             tf.keras.layers.ReLU(),
@@ -38,7 +38,7 @@ class BasicBlock(tf.keras.layers.Layer):
         )
         self.convs2 = tf.keras.Sequential(
             [
-           
+            tf.keras.Input(shape=(None,None,planes)),
             tf.keras.layers.Conv2D(planes,3, strides=stride, padding='same', dilation_rate=dilation,use_bias=False  ),
             tf.keras.layers.BatchNormalization(),]
         )
@@ -514,12 +514,8 @@ class ResNet(tf.keras.layers.Layer):
                 x=self.norm1.call_funtion(x)
             else:
                 x = self.norm1(x)
-
-          
             x = self.relu(x)
-
         x = self.maxpool(x)
-        
         outs = []
         for i, layer_name in enumerate(self.res_layers):
             res_layer = getattr(self, layer_name)
@@ -530,16 +526,19 @@ class ResNet(tf.keras.layers.Layer):
             if i in self.out_indices:
                 outs.append(x)
         return tuple(outs)
+
+        
     @tf.function(experimental_relax_shapes=True)
     def call(self, x,training=False):
         """Forward function."""
+
         if self.deep_stem:
             x = self.stem(x,training=training)
         else:
             x = self.conv1(x,training=training)
             x = self.norm1(x,training=training)
             x = self.relu(x,training=training)
-        x = self.maxpool(x,training=training)
+        x = self.maxpool(x)
         outs = []
         for i, layer_name in enumerate(self.res_layers):
             res_layer = getattr(self, layer_name)
