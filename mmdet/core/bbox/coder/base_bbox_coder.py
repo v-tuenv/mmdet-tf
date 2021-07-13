@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 
-
+import tensorflow as tf
 class BaseBBoxCoder(metaclass=ABCMeta):
     """Base bounding box coder."""
 

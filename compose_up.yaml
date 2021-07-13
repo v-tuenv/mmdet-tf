@@ -1,0 +1,80 @@
+version: '2'
+
+ 
+tue
+services:
+  redis:
+    image: docker.io/bitnami/redis:6.2
+    environment:
+      # ALLOW_EMPTY_PASSWORD is recommended only for development.
+      - ALLOW_EMPTY_PASSWORD=yes
+      - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
+    expose:
+      - "6379"
+    ports:
+      - '6379:6379'
+    volumes:
+      - 'redis_data:/bitnami/redis/data'
+  helper:
+    image: vinbrain.azurecr.io/lung-segmentation:release.17
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    expose:
+      - "8080"
+  chest-segmentation:
+    image: vinbrain.azurecr.io/chest-segmentation:develop.148
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      LUNGMASK_URL: http://helper:8080/images
+    expose:
+      - "8080"
+  chest-detection-0:
+    image: vinbrain.azurecr.io/chest-detection-cxx-0:release.latest
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PREDICT_PIPELINES: nofinding,mdevice,edema,cavitation,covid
+      HELPER_PIPELINES: all
+      LUNGMASK_URL: http://helper:8080/images
+      CHEST_SEG_URL: http://chest-segmentation:8080/images
+    expose:
+      - "8080"
+  chest-detection-1:
+    image: vinbrain.azurecr.io/chest-detection-cxx-1:release.latest
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PREDICT_PIPELINES: cls,tubercolusis
+      HELPER_PIPELINES: all
+      LUNGMASK_URL: http://helper:8080/images
+      CHEST_SEG_URL: http://chest-segmentation:8080/images
+    expose:
+      - "8080"
+  chest-ai-proxy:
+    image: vinbrain.azurecr.io/chest-ai-proxy:release.latest
+    depends_on:
+      - redis
+      - helper
+      - chest-segmentation
+      - chest-detection-0
+      - chest-detection-1
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CHEST_DETECTION_URLS: http://chest-detection-0:8080/images;http://chest-detection-1:8080/images
+      CHEST_SEGMENTATION_URLS: http://chest-segmentation:8080/images
+      CHEST_HELPER_URL: http://helper:8080/images
+      CACHE_ENCODE: jpg
+    ports:
+      - "8080:8080"
+    volumes:
+      - ${COMPOSE_MOUNT_DIR}:/home
+
+ 
+
+
+volumes:
+  redis_data:
+    driver: local

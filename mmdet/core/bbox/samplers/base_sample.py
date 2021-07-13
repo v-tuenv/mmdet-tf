@@ -30,7 +30,6 @@ class BaseSampler(metaclass=ABCMeta):
     def _sample_neg(self, assign_result, num_expected, **kwargs):
         """Sample negative samples."""
         pass
-
     def sample(self,
                assign_result,
                bboxes,

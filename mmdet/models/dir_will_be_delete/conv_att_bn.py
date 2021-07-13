@@ -84,7 +84,7 @@ class ConvModule(tf.keras.layers.Layer):
         self.order = order
         assert isinstance(self.order, tuple) and len(self.order) == 3
         assert set(order) == set(['conv', 'norm', 'act'])
-
+        self.not_base = True
         self.with_norm = norm_cfg is not None
         self.with_activation = act_cfg is not None
         # if the conv layer is before a norm layer, bias is unnecessary.
@@ -181,8 +181,11 @@ class ConvModule(tf.keras.layers.Layer):
         # if self.with_norm:
         #     constant_init(self.norm, 1, bias=0)
         tf.print("implement init weights in conv_att_bn.py")
-
+    
     def call(self, x, activate=True, norm=True, training=False):
+        if self.built is False:
+            self.built=True
+            return self.build_funtion_api_with_object_serializer(x,activate=activate,norm=norm)
         for layer in self.order:
             if layer == 'conv':
                 if self.with_explicit_padding:
@@ -192,4 +195,29 @@ class ConvModule(tf.keras.layers.Layer):
                 x = self.norm(x,training=training)
             elif layer == 'act' and activate and self.with_activation:
                 x = self.activate(x,training=training)
+        return x
+
+    
+    def call_funtion(self, x, activate=True, norm=True):
+        for layer in self.order:
+            if layer == 'conv':
+                if self.with_explicit_padding:
+                    x = self.padding_layer(x)
+                x = self.conv(x)
+            elif layer == 'norm' and norm and self.with_norm:
+                x = self.norm(x)
+            elif layer == 'act' and activate and self.with_activation:
+                x = self.activate(x)
+        return x
+        
+    def build_funtion_api_with_object_serializer(self, x, activate=True, norm=True):
+        for layer in self.order:
+            if layer == 'conv':
+                if self.with_explicit_padding:
+                    x = self.padding_layer(x)
+                x = self.conv(x)
+            elif layer == 'norm' and norm and self.with_norm:
+                x = self.norm(x)
+            elif layer == 'act' and activate and self.with_activation:
+                x = self.activate(x)
         return x

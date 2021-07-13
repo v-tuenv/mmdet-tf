@@ -48,7 +48,7 @@ class DeltaXYWHBBoxCoder(BaseBBoxCoder):
         self.clip_border = clip_border
         self.add_ctr_clamp = add_ctr_clamp
         self.ctr_clamp = ctr_clamp
-
+    @tf.function(experimental_relax_shapes=True)
     def encode(self, bboxes, gt_bboxes):
         """Get box regression transformation deltas that can be used to
         transform the ``bboxes`` into the ``gt_bboxes``.
@@ -64,7 +64,7 @@ class DeltaXYWHBBoxCoder(BaseBBoxCoder):
         assert bboxes.shape[-1] == gt_bboxes.shape[-1] == 4
         encoded_bboxes = bbox2delta(bboxes, gt_bboxes, self.means, self.stds)
         return encoded_bboxes
-
+    @tf.function(experimental_relax_shapes=True)
     def decode(self,
                bboxes,
                pred_bboxes,
@@ -97,8 +97,13 @@ class DeltaXYWHBBoxCoder(BaseBBoxCoder):
 
         return decoded_bboxes
 
+<<<<<<< HEAD
+@tf.function(experimental_relax_shapes=True)
+def bbox2delta(proposals, gt, means=(0., 0., 0., 0.), stds=(1., 1., 1., 1.), eps=1e-4):
+=======
 
 def bbox2delta(proposals, gt, means=(0., 0., 0., 0.), stds=(1., 1., 1., 1.)):
+>>>>>>> parent of 00a10b4... add work
     """Compute deltas of proposals w.r.t. gt.
     We usually compute the deltas of x, y, w, h of proposals w.r.t ground
     truth bboxes to get regression target.
@@ -143,7 +148,7 @@ def bbox2delta(proposals, gt, means=(0., 0., 0., 0.), stds=(1., 1., 1., 1.)):
 
     return deltas
 
-
+@tf.function(experimental_relax_shapes=True)
 def delta2bbox(rois,
                deltas,
                means=(0., 0., 0., 0.),

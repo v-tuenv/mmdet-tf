@@ -6,6 +6,17 @@ import tensorflow_addons as tfa
 from ..builder import NECKS
 
 from ..dir_will_be_delete.conv_att_bn import ConvModule
+
+class ResizeLayer(tf.keras.layers.Layer):
+    def __init__(self,size_image):
+        super().__init__()
+        self.size_image = size_image
+    def get_config(self):
+        a=super().get_config()
+        a.update({"size_image":self.size_image})
+    def call(self ,inputs):
+        return tf.compat.v1.image.resize_nearest_neighbor(
+                        inputs, self.size_image)
 @NECKS.register_module()
 class FPN(tf.keras.layers.Layer):
     r"""Feature Pyramid Network.
@@ -163,7 +174,118 @@ class FPN(tf.keras.layers.Layer):
         self.fun_upsample = tf.keras.layers.UpSampling2D(**upsample_cfg)
         self.fun_max = tf.keras.layers.MaxPool2D(pool_size=1, strides=2)
         self.use_image_resize = 'size' in upsample_cfg
-    def call(self, inputs):
+
+    def build(self, inputs):
+        inputs = [tf.keras.layers.Input(shape=i[1:]) for i in inputs]
+        assert len(inputs) == len(self.in_channels)
+        laterals = [
+            lateral_conv(inputs[i + self.start_level])
+            for i, lateral_conv in enumerate(self.lateral_convs)
+        ]
+        used_backbone_levels = len(laterals)
+        for i in range(used_backbone_levels - 1, 0, -1):
+            # In some cases, fixing `scale factor` (e.g. 2) is preferred, but
+            #  it cannot co-exist with `size` in `F.interpolate`.
+            if self.use_image_resize:
+                laterals[i - 1] =tf.keras.layers.Add()([laterals[i-1],self.fun_upsample(laterals[i])])
+            else:
+                prev_shape = laterals[i - 1].shape[-3:-1]
+                up_s_f = ResizeLayer([prev_shape[0], prev_shape[1]])
+                up_s = up_s_f(laterals[i])
+                # up_s=tf.compat.v1.image.resize_nearest_neighbor(
+                #         laterals[i], [prev_shape[0], prev_shape[1]])
+                
+                laterals[i - 1] =  tf.keras.layers.Add()([laterals[i - 1],up_s])
+
+        # build outputs
+        # part 1: from original levels
+        outs = [
+            self.fpn_convs[i](laterals[i]) for i in range(used_backbone_levels)
+        ]
+        # part 2: add extra levels
+        if self.num_outs > len(outs):
+            # use max pool to get more levels on top of outputs
+            # (e.g., Faster R-CNN, Mask R-CNN)
+            if not self.add_extra_convs:
+                for i in range(self.num_outs - used_backbone_levels):
+
+                    outs.append(self.fun_max(outs[-1]))
+            # add conv layers on top of original feature maps (RetinaNet)
+            else:
+                if self.add_extra_convs == 'on_input':
+                    extra_source = inputs[self.backbone_end_level - 1]
+                elif self.add_extra_convs == 'on_lateral':
+                    extra_source = laterals[-1]
+                elif self.add_extra_convs == 'on_output':
+                    extra_source = outs[-1]
+                else:
+                    raise NotImplementedError
+                outs.append(self.fpn_convs[used_backbone_levels](extra_source))
+                for i in range(used_backbone_levels + 1, self.num_outs):
+                    if self.relu_before_extra_convs:
+                        outs.append(self.fpn_convs[i](tf.keras.layers.ReLU()(outs[-1]),))
+                    else:
+                        outs.append(self.fpn_convs[i](outs[-1]))
+        self.call_wrapper = tf.keras.Model(inputs=inputs, outputs=outs)# tuple(outs)
+
+    @tf.function(experimental_relax_shapes=True)
+    def call(self, inputs, training=False):
+        """Forward function."""
+        return self.call_wrapper(inputs, training=training)
+        # assert len(inputs) == len(self.in_channels)
+
+        # # build laterals
+        # laterals = [
+        #     lateral_conv(inputs[i + self.start_level], training=training)
+        #     for i, lateral_conv in enumerate(self.lateral_convs)
+        # ]
+
+        # # build top-down path
+        # used_backbone_levels = len(laterals)
+        # for i in range(used_backbone_levels - 1, 0, -1):
+        #     # In some cases, fixing `scale factor` (e.g. 2) is preferred, but
+        #     #  it cannot co-exist with `size` in `F.interpolate`.
+        #     if self.use_image_resize:
+        #         laterals[i - 1] = laterals[i-1] +  self.fun_upsample(laterals[i])
+        #     else:
+        #         prev_shape = laterals[i - 1].shape[-3:-1]
+        #         up_s=tf.compat.v1.image.resize_nearest_neighbor(
+        #                 laterals[i], [prev_shape[0], prev_shape[1]])
+                
+        #         laterals[i - 1] =  laterals[i - 1] + up_s
+
+        # # build outputs
+        # # part 1: from original levels
+        # outs = [
+        #     self.fpn_convs[i](laterals[i], training=training) for i in range(used_backbone_levels)
+        # ]
+        # # part 2: add extra levels
+        # if self.num_outs > len(outs):
+        #     # use max pool to get more levels on top of outputs
+        #     # (e.g., Faster R-CNN, Mask R-CNN)
+        #     if not self.add_extra_convs:
+        #         for i in range(self.num_outs - used_backbone_levels):
+
+        #             outs.append(self.fun_max(outs[-1]))
+        #     # add conv layers on top of original feature maps (RetinaNet)
+        #     else:
+        #         if self.add_extra_convs == 'on_input':
+        #             extra_source = inputs[self.backbone_end_level - 1]
+        #         elif self.add_extra_convs == 'on_lateral':
+        #             extra_source = laterals[-1]
+        #         elif self.add_extra_convs == 'on_output':
+        #             extra_source = outs[-1]
+        #         else:
+        #             raise NotImplementedError
+        #         outs.append(self.fpn_convs[used_backbone_levels](extra_source,training=training))
+        #         for i in range(used_backbone_levels + 1, self.num_outs):
+        #             if self.relu_before_extra_convs:
+        #                 outs.append(self.fpn_convs[i](tf.nn.relu(outs[-1]), training=training))
+        #             else:
+        #                 outs.append(self.fpn_convs[i](outs[-1],training=training))
+        # return tuple(outs)
+    
+    def call_funtion(self, inputs):
         """Forward function."""
         assert len(inputs) == len(self.in_channels)
 
@@ -178,7 +300,7 @@ class FPN(tf.keras.layers.Layer):
         for i in range(used_backbone_levels - 1, 0, -1):
             # In some cases, fixing `scale factor` (e.g. 2) is preferred, but
             #  it cannot co-exist with `size` in `F.interpolate`.
-            if self.use_image_resize:
+            if not self.use_image_resize:
                 laterals[i - 1] = laterals[i-1] +  self.fun_upsample(laterals[i])
             else:
                 prev_shape = laterals[i - 1].shape[-3:-1]
@@ -186,9 +308,6 @@ class FPN(tf.keras.layers.Layer):
                         laterals[i], [prev_shape[0], prev_shape[1]])
                 
                 laterals[i - 1] =  laterals[i - 1] + up_s
-
-        # build outputs
-        # part 1: from original levels
         outs = [
             self.fpn_convs[i](laterals[i]) for i in range(used_backbone_levels)
         ]

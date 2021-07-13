@@ -17,7 +17,7 @@ class PseudoSampler(BaseSampler):
         """Sample negative samples."""
         raise NotImplementedError
     
-    def sample(self, assign_result, bboxes, gt_bboxes, **kwargs):
+    def sample(self,assigned_gt_inds, max_overlaps,assigned_labels, bboxes, gt_bboxes, **kwargs):
         """Directly returns the positive and negative indices  of samples.
         Args:
             assign_result (:obj:`AssignResult`): Assigned results
@@ -27,21 +27,10 @@ class PseudoSampler(BaseSampler):
             :obj:`SamplingResult`: sampler results
         """
         print("trace sample")
-        #print(assign_result.gt_inds.shape)
-        #print(bboxes.shape)
-        #print(gt_bboxes.shape)
-        #print("trace done")
-        sh = assign_result.gt_inds.shape[0]
+        sh = assigned_gt_inds.shape[0]
         if sh is None:
             sh= -1
-        pos_inds =tf.reshape(tf.where(assign_result.gt_inds > 0,1,0),(sh,))
-        # neg_inds =tf.reshape(tf.where(tf.equal(assign_result.gt_inds,0)), (sh,))
-        neg_inds = tf.where(assign_result.gt_inds==0,1,0)
-       # print(neg_inds.shape)
-        neg_inds = tf.reshape(neg_inds,[sh,])
-        
-        # gt_flags = tf.zeros(shape=(bboxes.shape[0],), dtype=tf.uint16)
-        
-        sampling_result = SamplingResult(pos_inds, neg_inds, bboxes, gt_bboxes,
-                                         assign_result)
-        return sampling_result
+        pos_inds =tf.reshape(tf.where(assigned_gt_inds > 0,1,0),(sh,))
+        neg_inds = tf.where(assigned_gt_inds==0,1,0)
+        neg_inds = tf.reshape(neg_inds,(sh,))
+        return pos_inds,neg_inds

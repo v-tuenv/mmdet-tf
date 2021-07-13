@@ -1,17 +1,16 @@
+from re import I
 import warnings
 
 import tensorflow as tf
 from tensorflow import keras
+from tensorflow.python.keras.engine.input_layer import Input
+from tensorflow.python.ops.gen_array_ops import shape
 from tensorflow_addons import layers
 from ..builder import BACKBONES
-# from ..utils 
-from ..dir_will_be_delete.conv import build_conv_layer
-from ..dir_will_be_delete.norm import build_norm_layer
 from .res_layer import ResLayer
-from ..dir_will_be_delete.mix_layers import SequentialLayer
+from tensorflow.keras import applications
 class BasicBlock(tf.keras.layers.Layer):
     expansion = 1
-
     def __init__(self,
                  inplanes,
                  planes,
@@ -29,69 +28,46 @@ class BasicBlock(tf.keras.layers.Layer):
         assert dcn is None, 'Not implemented yet.'
         assert plugins is None, 'Not implemented yet.'
 
-        self.norm1_name, norm1 = build_norm_layer(norm_cfg, planes, postfix=1)
-        self.norm2_name, norm2 = build_norm_layer(norm_cfg, planes, postfix=2)
-
-        self.conv1 = build_conv_layer(
-            conv_cfg,
-            planes,
-            3,
-            strides=stride,
-            padding=dilation,
-            dilation=dilation,
-            bias=False)
-        super(BasicBlock,self).__setattr__(self.norm1_name,norm1)
-        
-        self.conv2 = build_conv_layer(
-            conv_cfg,  planes, 3, padding=1, bias=False)
-        super(BasicBlock,self).__setattr__(self.norm2_name,norm2)
-        
-
-        self.relu =tf.keras.layers.ReLU()
+        self.convs1 = tf.keras.Sequential(
+            [
+            tf.keras.Input(shape=(None,None,inplanes)),
+            tf.keras.layers.Conv2D(planes,3, strides=stride, padding='same', dilation_rate =dilation,use_bias=False  ),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.ReLU(),
+            ]
+        )
+        self.convs2 = tf.keras.Sequential(
+            [
+            tf.keras.Input(shape=(None,None,planes)),
+            tf.keras.layers.Conv2D(planes,3, strides=stride, padding='same', dilation_rate=dilation,use_bias=False  ),
+            tf.keras.layers.BatchNormalization(),]
+        )
+        self.relu = tf.keras.layers.ReLU()
         self.downsample = downsample
         self.stride = stride
         self.dilation = dilation
         self.with_cp = with_cp
-
-    @property
-    def norm1(self):
-        """nn.Module: normalization layer after the first convolution layer"""
-        return getattr(self, self.norm1_name)
-
-    @property
-    def norm2(self):
-        """nn.Module: normalization layer after the second convolution layer"""
-        return getattr(self, self.norm2_name)
-
-    def call(self, x):
+    def call(self, x,training=False):
         """Forward function."""
 
-        def _inner_forward(x):
+        def _inner_forward(x,training=False):
             identity = x
 
-            out = self.conv1(x)
-            out = self.norm1(out)
-            out = self.relu(out)
-
-            out = self.conv2(out)
-            out = self.norm2(out)
+            out =self.convs1(x,training=training)
+            # out = self.conv1(x,training=training)
+            # out = self.norm1(out,training=training)
+            # out = self.relu(out,training=training)
+            out =self.convs2(out,training=training)
+            # out = self.conv2(out,training=training)
+            # out = self.norm2(out,training=training)
 
             if self.downsample is not None:
-                identity = self.downsample(x)
+                identity = self.downsample(x,training=training)
 
             out = out +  identity
-
             return out
-
-        # if self.with_cp and x.requires_grad:
-        #     # out = cp.checkpoint(_inner_forward, x)
-        #     # tf.print('implement checkpint')
-        #     pass
-        
-        out = _inner_forward(x)
-
-        out = self.relu(out)
-
+        out = _inner_forward(x,training=training)
+        out = self.relu(out,training=training)
         return out
 
 
@@ -123,7 +99,7 @@ class Bottleneck(tf.keras.layers.Layer):
         if plugins is not None:
             allowed_position = ['after_conv1', 'after_conv2', 'after_conv3']
             assert all(p['position'] in allowed_position for p in plugins)
-
+        self.not_base = True
         self.inplanes = inplanes
         self.planes = planes
         self.stride = stride
@@ -159,60 +135,39 @@ class Bottleneck(tf.keras.layers.Layer):
             self.conv1_stride = stride
             self.conv2_stride = 1
 
-        self.norm1_name, norm1 = build_norm_layer(norm_cfg, planes, postfix=1)
-        self.norm2_name, norm2 = build_norm_layer(norm_cfg, planes, postfix=2)
-        self.norm3_name, norm3 = build_norm_layer(
-            norm_cfg, planes * self.expansion, postfix=3)
-
-        self.conv1 = build_conv_layer(
-            conv_cfg,
-            planes,
-            kernel_size=1,
-            strides=self.conv1_stride,
-            bias=False)
-        super(Bottleneck,self).__setattr__(self.norm1_name,norm1)
-        
-        fallback_on_stride = False
-        if self.with_dcn:
-            fallback_on_stride = dcn.pop('fallback_on_stride', False)
-        if not self.with_dcn or fallback_on_stride:
-            self.conv2 = build_conv_layer(
-                conv_cfg,
-                planes,
-                kernel_size=3,
-                strides=self.conv2_stride,
-                padding=dilation,
-                dilation=dilation,
-                bias=False)
-        else:
-            assert self.conv_cfg is None, 'conv_cfg must be None for DCN'
-            self.conv2 = build_conv_layer(
-                dcn,
-                planes,
-                kernel_size=3,
-                strides=self.conv2_stride,
-                padding=dilation,
-                dilation=dilation,
-                bias=False)
-        super(Bottleneck,self).__setattr__(self.norm2_name,norm2)
+        # self.norm1_name, norm1 = build_norm_layer(norm_cfg, planes, postfix=1)
+        # self.norm2_name, norm2 = build_norm_layer(norm_cfg, planes, postfix=2)
+        # self.norm3_name, norm3 = build_norm_layer(
+            # norm_cfg, planes * self.expansion, postfix=3)
+        self.conv1 = tf.keras.Sequential(
+            [
+            tf.keras.layers.Input(shape=(None,None,inplanes)),
+            tf.keras.layers.Conv2D(planes,1,strides=self.conv1_stride,use_bias=False,padding='valid'),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.ReLU()]
+        )
+        self.conv2 = tf.keras.Sequential(
+            [
+            tf.keras.layers.Input(shape=(None,None,planes)),
+            tf.keras.layers.Conv2D(planes,3,strides=self.conv2_stride,padding='same', dilation_rate=dilation,use_bias=False),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.ReLU()
+            ]
+        )
+        self.conv3 = tf.keras.Sequential(
+            [
+            tf.keras.layers.Input(shape=(None,None,planes)),
+            tf.keras.layers.Conv2D(planes * self.expansion, 1, use_bias=False),
+            tf.keras.layers.BatchNormalization(),
+            ]
+            # tf.keras.layers.ReLU()
+        )
+ 
        
-        self.conv3 = build_conv_layer(
-            conv_cfg,
-            planes * self.expansion,
-            kernel_size=1,
-            bias=False)
-        super(Bottleneck,self).__setattr__(self.norm3_name,norm3)   
-       
-
+    
         self.relu = tf.keras.layers.ReLU()
         self.downsample = downsample
-        if self.with_plugins:
-            self.after_conv1_plugin_names = self.make_block_plugins(
-                planes, self.after_conv1_plugins)
-            self.after_conv2_plugin_names = self.make_block_plugins(
-                planes, self.after_conv2_plugins)
-            self.after_conv3_plugin_names = self.make_block_plugins(
-                planes * self.expansion, self.after_conv3_plugins)
+ 
 
     def make_block_plugins(self, in_channels, plugins):
         """make plugins for block.
@@ -237,53 +192,27 @@ class Bottleneck(tf.keras.layers.Layer):
         return plugin_names
 
     def forward_plugin(self, x, plugin_names):
+        raise Exception("forward_plugin not implement")
         out = x
         for name in plugin_names:
             out = getattr(self, name)(x)
         return out
 
-    @property
-    def norm1(self):
-        """nn.Module: normalization layer after the first convolution layer"""
-        return getattr(self, self.norm1_name)
 
-    @property
-    def norm2(self):
-        """nn.Module: normalization layer after the second convolution layer"""
-        return getattr(self, self.norm2_name)
 
-    @property
-    def norm3(self):
-        """nn.Module: normalization layer after the third convolution layer"""
-        return getattr(self, self.norm3_name)
 
-    def call(self, x):
+    def call(self, x,training=False):
         """Forward function."""
 
-        def _inner_forward(x):
+        def _inner_forward(x,training=False):
             identity = x
-            out = self.conv1(x)
-            out = self.norm1(out)
-            out = self.relu(out)
+            out  = self.conv1(x, training=training)
+            out = self.conv2(out, training=training)
 
-            if self.with_plugins:
-                out = self.forward_plugin(out, self.after_conv1_plugin_names)
-
-            out = self.conv2(out)
-            out = self.norm2(out)
-            out = self.relu(out)
-
-            if self.with_plugins:
-                out = self.forward_plugin(out, self.after_conv2_plugin_names)
-
-            out = self.conv3(out)
-            out = self.norm3(out)
-
-            if self.with_plugins:
-                out = self.forward_plugin(out, self.after_conv3_plugin_names)
+            out = self.conv3(out, training=training)
 
             if self.downsample is not None:
-                identity = self.downsample(x)
+                identity = self.downsample(x,training=training)
 
             out = out + identity
 
@@ -292,9 +221,9 @@ class Bottleneck(tf.keras.layers.Layer):
         # if self.with_cp and x.requires_grad:
             # out = cp.checkpoint(_inner_forward, x)
         # else:
-        out = _inner_forward(x)
+        out = _inner_forward(x,training=training)
 
-        out = self.relu(out)
+        out = self.relu(out,training=training)
 
         return out
 
@@ -459,7 +388,9 @@ class ResNet(tf.keras.layers.Layer):
                 stage_plugins = self.make_stage_plugins(plugins, i)
             else:
                 stage_plugins = None
+            
             planes = base_channels * 2**i
+            
             res_layer = self.make_res_layer(
                 block=self.block,
                 inplanes=self.inplanes,
@@ -540,94 +471,78 @@ class ResNet(tf.keras.layers.Layer):
         """Pack all blocks in a stage into a ``ResLayer``."""
         return ResLayer(**kwargs)
 
-    @property
-    def norm1(self):
-        """nn.Module: the normalization layer named "norm1" """
-        return getattr(self, self.norm1_name)
 
     def _make_stem_layer(self, in_channels, stem_channels):
         if self.deep_stem:
-            self.stem =SequentialLayer([
-                build_conv_layer(
-                    self.conv_cfg,
-                    stem_channels // 2,
-                    kernel_size=3,
-                    strides=2,
-                    padding=1,
-                    bias=False),
-                build_norm_layer(self.norm_cfg, stem_channels // 2)[1],
-                keras.layers.ReLU(),
-                build_conv_layer(
-                    self.conv_cfg,
-                   
-                    stem_channels // 2,
-                    kernel_size=3,
-                    strides=1,
-                    padding=1,
-                    bias=False),
-                build_norm_layer(self.norm_cfg, stem_channels // 2)[1],
-                tf.keras.layers.ReLU(),
-                build_conv_layer(
-                    self.conv_cfg,
-                    
-                    stem_channels,
-                    kernel_size=3,
-                    strides=1,
-                    padding=1,
-                    bias=False),
-                build_norm_layer(self.norm_cfg, stem_channels)[1],
-                tf.keras.layers.ReLU()
-            ])
+            self.stem = tf.keras.Sequential(
+                [
+                    tf.keras.layers.Input(shape=(None,None,in_channels)),
+                    tf.keras.layers.Conv2D(stem_channels // 2, 3, strides=2, padding='same',use_bias=False),
+                    tf.keras.layers.BatchNormalization(),
+                    tf.keras.layers.ReLU(),
+
+                    tf.keras.layers.Conv2D(stem_channels, 3, strides=1,padding='same', use_bias=False),
+                    tf.keras.layers.BatchNormalization(),
+                    tf.keras.layers.ReLU(),
+                ]
+
+            )
         else:
-            self.conv1 = build_conv_layer(
-                self.conv_cfg,
-            
-                stem_channels,
-                kernel_size=7,
-                strides=2,
-                padding=3,
-                bias=False)
-            self.norm1_name, norm1 = build_norm_layer(
-                self.norm_cfg, stem_channels, postfix=1)
-            super(ResNet,self).__setattr__(self.norm1_name, norm1)
-            
+            self.conv1 = tf.keras.layers.Conv2D(stem_channels, 7, strides=2, padding='same',use_bias=False)
+            self.norm1 = tf.keras.layers.BatchNormalization()
             self.relu = tf.keras.layers.ReLU()
+           
         self.maxpool = tf.keras.layers.MaxPool2D(pool_size=3, strides=2,padding='SAME')
         #self.maxpool.add(tf.keras.layers.ZeroPadding2D(padding=(1,1)))
        # self.maxpool.add(tf.keras.layers.MaxPool2D(pool_size=3, strides=2)) #nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         
     def _freeze_stages(self):
         tf.print("implement freeze_stage")
-        # if self.frozen_stages >= 0:
-        #     if self.deep_stem:
-        #         self.stem.eval()
-        #         for param in self.stem.parameters():
-        #             param.requires_grad = False
-        #     else:
-        #         self.norm1.eval()
-        #         for m in [self.conv1, self.norm1]:
-        #             for param in m.parameters():
-        #                 param.requires_grad = False
 
-        # for i in range(1, self.frozen_stages + 1):
-        #     m = getattr(self, f'layer{i}')
-        #     m.eval()
-        #     for param in m.parameters():
-        #         param.requires_grad = False
-
-    def call(self, x):
-        """Forward function."""
+    def call_funtion(self, x):
         if self.deep_stem:
-            x = self.stem(x)
+            if hasattr(self.stem,'not_base') and self.stem.not_base:
+                x = self.stem.call_funtion(x)
+            else:
+                x=self.stem(x)
         else:
-            x = self.conv1(x)
-            x = self.norm1(x)
+            if hasattr(self.conv1,'not_base') and self.conv1.not_base:
+                x=self.conv1.call_funtion(x)
+            else:
+                x = self.conv1(x)
+            if hasattr(self.norm1,'not_base') and self.norm1.not_base:
+                x=self.norm1.call_funtion(x)
+            else:
+                x = self.norm1(x)
             x = self.relu(x)
         x = self.maxpool(x)
         outs = []
         for i, layer_name in enumerate(self.res_layers):
             res_layer = getattr(self, layer_name)
-            x = res_layer(x)
+            if hasattr(res_layer,'not_base') and res_layer.not_base:
+                x=res_layer.call_funtion(x)
+            else:
+                x = res_layer(x)
+            if i in self.out_indices:
+                outs.append(x)
+        return tuple(outs)
+
+        
+    @tf.function(experimental_relax_shapes=True)
+    def call(self, x,training=False):
+        """Forward function."""
+
+        if self.deep_stem:
+            x = self.stem(x,training=training)
+        else:
+            x = self.conv1(x,training=training)
+            x = self.norm1(x,training=training)
+            x = self.relu(x,training=training)
+        x = self.maxpool(x)
+        outs = []
+        for i, layer_name in enumerate(self.res_layers):
+            res_layer = getattr(self, layer_name)
+            x = res_layer(x,training=training)
             if i in self.out_indices:
                 outs.append(x)
         return tuple(outs)
