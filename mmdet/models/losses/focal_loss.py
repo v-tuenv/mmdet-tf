@@ -93,8 +93,8 @@ class FocalLoss(tf.keras.layers.Layer):
             if weight is not None:
                 if weight.shape != loss_cls.shape:
                     weight = tf.reshape(weight,(-1,1))
-#                 else:
-#                     weight = tf.reshape(weight, (loss_cls.shape[0],-1))
+                else:
+                    weight = tf.reshape(weight, (loss_cls.shape[0],-1))
 #             print(reduction, avg_factor)
             
             loss = weight_reduce_loss(loss_cls, weight, reduction, avg_factor)
