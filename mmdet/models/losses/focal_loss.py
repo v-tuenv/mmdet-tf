@@ -78,30 +78,9 @@ class FocalLoss(tf.keras.layers.Layer):
             target = tf.one_hot(target,  depth=num_classes)
             loss_v = tfa.losses.SigmoidFocalCrossEntropy(from_logits=True,reduction = tf.keras.losses.Reduction.NONE,)
             loss_cls = loss_v(target, pred)
-            loss_cls = tf.math.reduce_sum(loss_cls, axis=-1)
-#             calculate_loss_func = focal_loss_funtion
-#             loss_cls = self.loss_weight * calculate_loss_func(
-#                 pred,
-#                 target,
-                
-#                 gamma=self.gamma,
-#                 alpha=self.alpha,
-#                 )
-#             print("here")
-# #             print(target)
-            
             if weight is not None:
-                if weight.shape != loss_cls.shape:
-                    weight = tf.reshape(weight,(-1,1))
-                else:
-                    weight = tf.reshape(weight, (loss_cls.shape[0],-1))
-#             print(reduction, avg_factor)
-            
+                weight = tf.reshape(weight,(-1,))
             loss = weight_reduce_loss(loss_cls, weight, reduction, avg_factor)
-#             loss_1 = tf.math.reduce_sum(loss_1 * tf.cast(weight,loss_1.dtype)) / tf.cast(avg_factor,loss_1.dtype)
-#             tf.print(loss_cls)
-#             tf.print(loss)
-#             tf.print(tf.math.reduce_sum(weight),loss,loss_1)
         else:
             raise NotImplementedError
         return loss

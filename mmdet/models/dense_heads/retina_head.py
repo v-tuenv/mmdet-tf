@@ -197,6 +197,7 @@ class RetinaHeadSpaceSTORM(AnchorHeadSpaceSTORM):
         cls_convs = []
         reg_convs = []
         ich = 0
+        prior_probability = tf.constant_initializer(-np.log((1 - 0.01) / 0.01))
         for i in range(self.stacked_convs):
             chn = self.in_channels if i == 0 else self.feat_channels
             if i==0:
@@ -204,7 +205,7 @@ class RetinaHeadSpaceSTORM(AnchorHeadSpaceSTORM):
 
             cls_convs.extend(
                 [
-                tf.keras.layers.Conv2D(self.feat_channels,3,strides=1,padding='same'),
+                tf.keras.layers.Conv2D(self.feat_channels,3,strides=1,padding='same',kernel_initializer=prior_probability),
                 tf.keras.layers.ReLU()])
                 # ConvModule(
                 #     chn,
@@ -216,7 +217,7 @@ class RetinaHeadSpaceSTORM(AnchorHeadSpaceSTORM):
                 #     norm_cfg=self.norm_cfg))
             reg_convs.extend(
                 [
-                tf.keras.layers.Conv2D(self.feat_channels,3,strides=1,padding='same'),
+                tf.keras.layers.Conv2D(self.feat_channels,3,strides=1,padding='same',kernel_initializer='zeros'),
                 tf.keras.layers.ReLU()
                 ]
             )
