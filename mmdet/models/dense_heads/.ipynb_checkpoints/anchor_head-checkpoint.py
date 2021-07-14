@@ -121,26 +121,32 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
         self.num_anchors =  self.anchor_generator.num_base_anchors[0]
         # self.set_attr_serializer('num_anchors', self.anchor_generator.num_base_anchors[0] )
         
-        # self.m_init_layers()
+        self.m_init_layers()
 
     def m_init_layers(self):
         '''init layers or weights
         '''
         self.conv_cls = nn.Conv2D(self.num_anchors * self.cls_out_channels, 1)
         self.conv_reg = nn.Conv2D(self.num_anchors * 4, 1)
-    def build(self, feats):
-        inputs = [tf.keras.layers.Input(shape=i[1:]) for i in feats]
-        self.m_init_layers()
+#     def build(self, feats):
+#         inputs = [tf.keras.layers.Input(shape=(None,None,i[-1])) for i in feats]
+#         self.m_init_layers()
+#         outs = []
+#         N = len(feats)
+#         for i in range(N):
+#             outs.append(self.forward_single(inputs[i]))
+#         outs=tuple(map(list, zip(*outs)))
+#         self.call_fn_wraper = tf.keras.Model(inputs=inputs, outputs=outs)
+    @tf.function(experimental_relax_shapes=True)
+    def call(self, feats, training=False):
         outs = []
         N = len(feats)
         for i in range(N):
-            outs.append(self.forward_single(inputs[i]))
+            outs.append(self.forward_single(feats[i],training=training))
         outs=tuple(map(list, zip(*outs)))
-        self.call_fn_wraper = tf.keras.Model(inputs=inputs, outputs=outs)
-    def call(self, feats, training=False):
-        return self.call_fn_wraper(feats, training=training)
-
-    def forward_single(self, x):
+        return outs
+    @tf.function(experimental_relax_shapes=True)
+    def forward_single(self, x,training=False):
         """Forward feature of a single scale level.
         Args:
             x (Tensor): Features of a single scale level.
@@ -151,8 +157,8 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
                 bbox_pred (Tensor): Box energies / deltas for a single scale \
                     level, the channels number is num_anchors * 4.
         """
-        cls_score = self.conv_cls(x)
-        bbox_pred = self.conv_reg(x)
+        cls_score = self.conv_cls(x,training=training)
+        bbox_pred = self.conv_reg(x,training=training)
         return cls_score, bbox_pred
 
     def get_anchors(self, featmap_sizes,num_imgs):
@@ -190,13 +196,13 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
         # bbox target
         bbox_weights = tf.reshape(pos_inds,[-1,1])
         if not self.reg_decoded_bbox:
-            pos_bbox_targets = tf.concat([tf.convert_to_tensor([[1.,1.,1.,1.],[1.,1.,1.,1.]],tf.float32),
+            pos_bbox_targets = tf.concat([tf.convert_to_tensor([[0.,0.,1.,1.],[0.,0.,1.,1.]],tf.float32),
                                         gt_bboxes],axis=0)
             pos_bbox_targets = tf.gather(pos_bbox_targets, assigned_gt_inds+1)
             bbox_targets=self.bbox_coder.encode(
                     anchors,pos_bbox_targets)
         else:
-            pos_bbox_targets = tf.concat([tf.convert_to_tensor([[1.,1.,1.,1.],[1.,1.,1.,1.]],tf.float32),
+            pos_bbox_targets = tf.concat([tf.convert_to_tensor([[0.,0.,1.,1.],[0.,0.,1.,1.]],tf.float32),
                                         gt_bboxes],axis=0)
             bbox_targets = tf.gather(pos_bbox_targets, assigned_gt_inds+1)
         
@@ -269,11 +275,6 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
 
         (all_labels, all_label_weights, all_bbox_targets, all_bbox_weights,
          pos_inds_list, neg_inds_list) = results[:6]
-        
-        # no valid anchors
-        # if any([labels is None for labels in all_labels]):
-        #     return None
-        # sampled anchors of all images
         num_total_pos = sum([tf.math.maximum(tf.math.reduce_sum(inds), 1) for inds in pos_inds_list])
         num_total_neg = sum([tf.math.maximum(tf.math.reduce_sum(inds), 1) for inds in neg_inds_list])
         # split targets to a list w.r.t. multiple levels
@@ -319,10 +320,12 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
         # classification loss
         labels =tf.reshape(labels, (-1,))
         label_weights = tf.reshape(label_weights,(-1,))
-
+        print(label_weights)
         cls_score =tf.reshape(cls_score,(-1, self.cls_out_channels))
+        print(cls_score)
         loss_cls = self.loss_cls(
             cls_score, labels, label_weights, avg_factor=num_total_samples)
+        
         # regression loss
         bbox_targets =tf.reshape(bbox_targets,(-1, 4))
         bbox_weights = tf.reshape(bbox_weights,(-1,1))
@@ -384,7 +387,7 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
 
         num_total_samples = (
             num_total_pos + num_total_neg if self.sampling else num_total_pos)
-
+        
         num_level_anchors = [anchors.shape[0] for anchors in anchor_list[0]]
 
      
@@ -395,8 +398,7 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
 
         all_anchor_list =   images_to_levels(concat_anchor_list,
                                            num_level_anchors)
-        # print(all_anchor_list)
-        # print(num_level_anchors)
+
         losses_clss=[]
         losses_bboxs=[]
         for i in range(len(cls_scores)):

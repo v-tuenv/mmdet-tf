@@ -188,7 +188,7 @@ class RetinaHeadSpaceSTORM(AnchorHeadSpaceSTORM):
             anchor_generator=anchor_generator,
             init_cfg=init_cfg,
             **kwargs)
-        
+#         m_init_layers()
 
 
     def m_init_layers(self):
@@ -235,8 +235,8 @@ class RetinaHeadSpaceSTORM(AnchorHeadSpaceSTORM):
         self.retina_reg = tf.keras.layers.Conv2D(self.num_anchors *4, 3 , padding='SAME',kernel_initializer=tf.random_normal_initializer(stddev=0.01),)
 
 
-    
-    def forward_single(self, x):
+    @tf.function(experimental_relax_shapes=True)
+    def forward_single(self, x,training=False):
         """Forward feature of a single scale level.
         Args:
             x (Tensor): Features of a single scale level.
@@ -247,14 +247,12 @@ class RetinaHeadSpaceSTORM(AnchorHeadSpaceSTORM):
                 bbox_pred (Tensor): Box energies / deltas for a single scale
                     level, the channels number is num_anchors * 4.
         """
-        print("call retinahead")
-        cls_feat=self.cls_convs(x)
-        reg_feat=self.reg_convs(x)
-
-       
-        
-        cls_score = self.retina_cls(cls_feat)
-        bbox_pred = self.retina_reg(reg_feat)
+        cls_feat = x
+        reg_feat = x
+        cls_feat = self.cls_convs(x,training=training)
+        reg_feat = self.reg_convs(x,training=training)
+        cls_score = self.retina_cls(cls_feat,training=training)
+        bbox_pred = self.retina_reg(reg_feat,training=training)
         return cls_score, bbox_pred
     
     

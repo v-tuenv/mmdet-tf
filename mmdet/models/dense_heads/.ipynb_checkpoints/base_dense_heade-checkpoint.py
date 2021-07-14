@@ -6,12 +6,12 @@ class BaseDenseHeadSpaceSTORM(tf.keras.layers.Layer):
     def __init__(self,*args,**kwargs):
         super().__init__()
     
-    def build(self, input_shapes):
-        '''keep note: densen head should recevied multiplies inputs from necks
-        '''
-        tf.print(f"layers-{self.name} is build in with default funtion at line 24-base_dense_haed do nothing")
-        self.built=True
-        pass
+#     def build(self, input_shapes):
+#         '''keep note: densen head should recevied multiplies inputs from necks
+#         '''
+#         tf.print(f"layers-{self.name} is build in with default funtion at line 24-base_dense_haed do nothing")
+#         self.built=True
+#         pass
     def call(self, inputs, training=False):
         tf.print('call base head is not stable')
         pass

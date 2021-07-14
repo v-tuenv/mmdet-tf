@@ -66,7 +66,7 @@ class BboxOverlaps2DIOU():
             union = area1[..., None] + area2[..., None, :] - overlap
         
 
-        union = tf.maximum(union, 1e-4)
+        union = tf.maximum(union, 1e-6)
         ious = overlap / union
         if is_aligned:
             ious = tf.ensure_shape(ious, [rows,])

@@ -98,7 +98,7 @@ class MaxIoUAssigner(BaseAssigner):
         if assign_on_cpu:
             tf.print("control cpu compute not implement at line 89 max_iou_assigner.py")
 
-        mask_ignore_bboxex =tf.where(tf.math.reduce_sum(gt_bboxes,axis=-1) >1.,)
+        mask_ignore_bboxex =tf.where(tf.math.reduce_sum(gt_bboxes,axis=-1) >2.,)
         # mask_ignore_bboxex 
         # tf.print(mask_ignore_bboxex)
         mask_ignore_bboxex  = tf.reshape(mask_ignore_bboxex,[-1,])
@@ -166,7 +166,7 @@ class MaxIoUAssigner(BaseAssigner):
                                     force_match_row_ids + 1, assigned_gt_inds)
             # pass
         
-            tf.print('warining line 163 max_iou_assigner.py')
+            # tf.print('warining line 163 max_iou_assigner.py')
         # print(assigned_gt_inds)
         
         if gt_labels is not None:

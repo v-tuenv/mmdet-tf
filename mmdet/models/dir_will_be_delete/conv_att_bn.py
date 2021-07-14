@@ -183,9 +183,6 @@ class ConvModule(tf.keras.layers.Layer):
         tf.print("implement init weights in conv_att_bn.py")
     
     def call(self, x, activate=True, norm=True, training=False):
-        if self.built is False:
-            self.built=True
-            return self.build_funtion_api_with_object_serializer(x,activate=activate,norm=norm)
         for layer in self.order:
             if layer == 'conv':
                 if self.with_explicit_padding:
