@@ -7,14 +7,12 @@ def focal_loss_funtion(pred, target, alpha = 0.25, gamma = 2., label_smoothing =
     """y_true: shape = (batch, n_anchors, 1)
        y_pred : shape = (batch, n_anchors, num_class)
     """ 
-#     print(y_true.shape, y_pred.shape)
     pred_prob = tf.nn.sigmoid(pred)
-    p_t = ((1-target )* pred_prob) + (target * (1 - pred_prob))
+    target = tf.cast(target, pred_prob.dtype)
+    p_t = (1-target )* pred_prob + target * (1 - pred_prob)
     alpha_factor = target * alpha + (1 - target) * (1 - alpha)
     modulating_factor =  tf.pow(p_t,gamma)
-#     y_true = target * (1.0 - label_smoothing) + target * label_smoothing
     ce = tf.nn.sigmoid_cross_entropy_with_logits(labels=target, logits=pred)
-    
     loss_without_weights= alpha_factor * modulating_factor * ce
     return loss_without_weights
 
@@ -71,13 +69,17 @@ class FocalLoss(tf.keras.layers.Layer):
         # print(pred.shape, target.shape, weight.shape,avg_factor,reduction_override)
         assert reduction_override in (None, 'none', 'mean', 'sum')
 #         print(pred.shape,target.shape,"focal")
+        print(pred.shape)
+        print(target.shape)
         reduction = (
             reduction_override if reduction_override else self.reduction)
         if self.use_sigmoid:
             num_classes = pred.shape[1]
             target = tf.one_hot(target,  depth=num_classes)
-            loss_v = tfa.losses.SigmoidFocalCrossEntropy(from_logits=True,reduction = tf.keras.losses.Reduction.NONE,)
-            loss_cls = loss_v(target, pred)
+            loss_v = tfa.losses.SigmoidFocalCrossEntropy(from_logits=True,alpha=1.,gamma=0., reduction = tf.keras.losses.Reduction.NONE,)
+            # loss_cls = tf.nn.sigmoid_cross_entropy_with_logits(target, pred)
+            loss_cls = focal_loss_funtion(pred, target)
+            loss_cls = tf.math.reduce_sum(loss_cls,-1)
             if weight is not None:
                 weight = tf.reshape(weight,(-1,))
             loss = weight_reduce_loss(loss_cls, weight, reduction, avg_factor)

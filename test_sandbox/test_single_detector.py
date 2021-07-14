@@ -19,9 +19,10 @@ bboxes=tf.convert_to_tensor([[[ 62.66066  , 241.23769  , 279.47253  , 378.02307 
         [  0.       ,   0.       ,   0.       ,   0.       ]],
 
        [[ 43.853565 ,  74.27118  , 261.4868   , 288.11673  ],
-        [  0.       ,   0.       ,   0.       ,   0.       ],
-        [  0.       ,   0.       ,   0.       ,   0.       ],
-        [  0.       ,   0.       ,   0.       ,   0.       ],
+         [  3.6642313,   3.1684952, 511.03354  , 510.63177  ],
+      
+        [  0.       ,   0.       ,   512.       ,   328.       ],
+        [  0.       ,   0.       ,   46.       ,   52.       ],
         [  0.       ,   0.       ,   0.       ,   0.       ],
         [  0.       ,   0.       ,   0.       ,   0.       ],
         [  0.       ,   0.       ,   0.       ,   0.       ],
@@ -32,8 +33,8 @@ bboxes=tf.convert_to_tensor([[[ 62.66066  , 241.23769  , 279.47253  , 378.02307 
        ],
       dtype=tf.float32)
 
-cate=tf.convert_to_tensor([[0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-       [2, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+cate=tf.convert_to_tensor([[2, 1, 3, -1, -1, -1, -1, -1, -1, -1],
+       [2, 4, 0, 1, 0, 0, -1, -1, -1, -1],
        ], dtype=tf.int32)
 
 print(bboxes.shape, cate.shape)
@@ -71,11 +72,11 @@ model = dict(
             octave_base_scale=4,
             scales_per_octave=3,
             ratios=[0.5, 1.0, 2.0],
-            strides=[8, 16, 32, 64, 128]),
+            strides=[4, 8, 16, 32, 64]),
         bbox_coder=dict(
             type='DeltaXYWHBBoxCoder',
             target_means=[.0, .0, .0, .0],
-            target_stds=[0.2, 0.2, 0.1, 0.1]),
+            target_stds=[1., 1., 1., 1.]),
         loss_cls=dict(
             type='FocalLoss',
             use_sigmoid=True,
@@ -90,7 +91,9 @@ model = dict(
             pos_iou_thr=0.5,
             neg_iou_thr=0.4,
             min_pos_iou=0,
-            ignore_iof_thr=-1),
+            ignore_iof_thr=-1,
+            match_low_quality=False,
+            iou_calculator=dict(type='BboxOverlaps2DIOU')),
         allowed_border=-1,
         pos_weight=-1,
         debug=False)),
@@ -100,6 +103,8 @@ model = dict(
         score_thr=0.05,
         nms=dict(type='nms', iou_threshold=0.5),
         max_per_img=100)))
+# retina = models.build_detector(model)
+
 retina = models.build_detector(model)
 
 fake_images = tf.random.normal(shape=(2, 512, 512, 3))

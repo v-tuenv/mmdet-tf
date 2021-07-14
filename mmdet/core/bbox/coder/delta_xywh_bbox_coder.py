@@ -115,13 +115,13 @@ def bbox2delta(proposals, gt, means=(0., 0., 0., 0.), stds=(1., 1., 1., 1.)):
     gt = tf.cast(gt, tf.float32) # gt.float()
     px = (proposals[..., 0] + proposals[..., 2]) * 0.5
     py = (proposals[..., 1] + proposals[..., 3]) * 0.5
-    pw = proposals[..., 2] - proposals[..., 0]
-    ph = proposals[..., 3] - proposals[..., 1]
+    pw = proposals[..., 2] - proposals[..., 0] + 1e-6
+    ph = proposals[..., 3] - proposals[..., 1] + 1e-6
 
     gx = (gt[..., 0] + gt[..., 2]) * 0.5
     gy = (gt[..., 1] + gt[..., 3]) * 0.5
-    gw = gt[..., 2] - gt[..., 0]
-    gh = gt[..., 3] - gt[..., 1]
+    gw = gt[..., 2] - gt[..., 0] 
+    gh = gt[..., 3] - gt[..., 1] 
 
     dx = (gx - px) / pw 
     dx = (dx - means[0]) / stds[0]

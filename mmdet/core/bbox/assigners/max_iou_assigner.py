@@ -5,7 +5,7 @@ from ..builder import BBOX_ASSIGNERS
 from ..iou_calculators import build_iou_calculator
 from .base_assigner import BaseAssigner
 from .assign_result import AssignResult
-
+# tf.keras.Model
 def _set_values_using_indicator( x, indicator, val):
         """Set the indicated fields of x to val.
         Args:

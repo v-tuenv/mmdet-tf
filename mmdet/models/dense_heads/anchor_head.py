@@ -128,15 +128,6 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
         '''
         self.conv_cls = nn.Conv2D(self.num_anchors * self.cls_out_channels, 1)
         self.conv_reg = nn.Conv2D(self.num_anchors * 4, 1)
-#     def build(self, feats):
-#         inputs = [tf.keras.layers.Input(shape=(None,None,i[-1])) for i in feats]
-#         self.m_init_layers()
-#         outs = []
-#         N = len(feats)
-#         for i in range(N):
-#             outs.append(self.forward_single(inputs[i]))
-#         outs=tuple(map(list, zip(*outs)))
-#         self.call_fn_wraper = tf.keras.Model(inputs=inputs, outputs=outs)
     @tf.function(experimental_relax_shapes=True)
     def call(self, feats, training=False):
         outs = []
@@ -212,6 +203,13 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
             tf.print('raise implement rpn seperate')
         labels = assigned_labels
         label_weights = pos_inds + neg_inds
+        test_pos = tf.where(pos_inds)
+        test_pos=tf.reshape(test_pos,(-1,))
+        tf.print("he")
+        tf.print(tf.math.reduce_sum(pos_inds))
+        tf.print(tf.math.reduce_sum(neg_inds))
+        # tf.print(tf.gather(labels, test_pos), tf.gather(pos_bbox_targets, test_pos),\
+        # tf.gather(bbox_targets,test_pos),tf.gather(anchors,test_pos))
         return (labels, label_weights, bbox_targets, bbox_weights, pos_inds,
                 neg_inds)
     
@@ -320,15 +318,15 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
         # classification loss
         labels =tf.reshape(labels, (-1,))
         label_weights = tf.reshape(label_weights,(-1,))
-        print(label_weights)
+      
         cls_score =tf.reshape(cls_score,(-1, self.cls_out_channels))
-        print(cls_score)
+        
         loss_cls = self.loss_cls(
             cls_score, labels, label_weights, avg_factor=num_total_samples)
         
         # regression loss
         bbox_targets =tf.reshape(bbox_targets,(-1, 4))
-        bbox_weights = tf.reshape(bbox_weights,(-1,1))
+        bbox_weights = tf.reshape(bbox_weights,(-1,))
         bbox_pred =tf.reshape(bbox_pred, (-1,4))# bbox_pred.permute(0, 2, 3, 1).reshape(-1, 4)
         if self.reg_decoded_bbox:
             # When the regression loss (e.g. `IouLoss`, `GIouLoss`)
@@ -380,17 +378,11 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
             label_channels=label_channels)
         if cls_reg_targets is None:
             return None
-#         print(cls_reg_targets)
-        
         (labels_list, label_weights_list, bbox_targets_list, bbox_weights_list,
          num_total_pos, num_total_neg) = cls_reg_targets
-
         num_total_samples = (
             num_total_pos + num_total_neg if self.sampling else num_total_pos)
-        
         num_level_anchors = [anchors.shape[0] for anchors in anchor_list[0]]
-
-     
         concat_anchor_list = []
         for i in range(len(anchor_list)):
             concat_anchor_list.append(tf.concat(anchor_list[i], axis=0))
@@ -401,6 +393,17 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
 
         losses_clss=[]
         losses_bboxs=[]
+        # for i in range(len(cls_scores)):
+        #     cls_scores[i] = tf.reshape(cls_scores[i],(-1,self.cls_out_channels))
+        #     bbox_preds[i] = tf.reshape(bbox_preds[i], (-1,4))
+        #     label_weights_list[i] = tf.reshape(label_weights_list[i],(-1,))
+        #     labels_list[i] = tf.reshape(labels_list[i],(-1,))
+        #     bbox_targets_list[i] = tf.reshape(bbox_targets_list[i],(-1,4))
+        #     bbox_weights_list[i] = tf.reshape(bbox_weights_list[i],(-1,4))
+        # cls_scores=tf.concat(cls_scores,axis=0)
+        # bbox_preds=tf.concat(bbox_preds,axis=0)
+
+
         for i in range(len(cls_scores)):
             losses_cls, losses_bbox = self.loss_single(cls_scores[i], bbox_preds[i],
                             all_anchor_list[i],labels_list[i],label_weights_list[i],bbox_targets_list[i],

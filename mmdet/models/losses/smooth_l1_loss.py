@@ -34,6 +34,7 @@ def l1_loss(pred, target):
     """
     
     loss = tf.math.abs(pred - target)
+    loss = tf.math.reduce_sum(loss,axis=-1)
     return loss 
 @LOSSES.register_module()
 class SmoothL1Loss(tf.keras.layers.Layer):

@@ -571,3 +571,11 @@ class ResNetV1d(ResNet):
     def __init__(self, **kwargs):
         super(ResNetV1d, self).__init__(
             deep_stem=True, avg_down=True, **kwargs)
+
+
+@BACKBONES.register_module()
+class ResNetKeras():
+    def __init__(self):
+        base = tf.keras.applications.ResNet50V2(include_top=False,weights='imagenet')
+
+        
