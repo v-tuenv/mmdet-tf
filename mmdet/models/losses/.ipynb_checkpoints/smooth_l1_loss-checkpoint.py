@@ -21,7 +21,7 @@ def smooth_l1_loss(pred, target, beta=1.0):
     diff = tf.math.abs(pred - target)
     loss = tf.where(diff < beta, 0.5 * diff * diff / beta,
                        diff - 0.5 * beta)
-    return loss
+    return tf.math.reduce_sum(loss,axis=-1)
 @weighted_loss
 @tf.function(experimental_relax_shapes=True)
 def l1_loss(pred, target):
@@ -34,7 +34,7 @@ def l1_loss(pred, target):
     """
     
     loss = tf.math.abs(pred - target)
-    return loss * loss
+    return tf.math.reduce_sum(loss,axis=-1) 
 @LOSSES.register_module()
 class SmoothL1Loss(tf.keras.layers.Layer):
     """Smooth L1 loss.
@@ -145,12 +145,8 @@ class L1Loss(tf.keras.layers.Layer):
         # targety =tf.gather(target,a)
         loss_bbox = self.loss_weight * l1_loss(
             pred, target, weight, reduction=reduction, avg_factor=avg_factor)
-        # tf.print(predx)
-        # tf.print(targety)
-        # x = self.loss_weight * l1_loss(
-        #     predx, targety, weight=None, reduction=reduction, avg_factor=avg_factor)
-        # tf.print(x)
-        # tf.print(loss_bbox)
-        # tf.print(avg_factor)
-        # tf.print("loss-done")
-        return loss_bbox
+        loss_bbox  = tf.math.abs(pred-target)
+        weight = tf.cast(weight,loss_bbox.dtype)
+        loss_bbox = tf.math.reduce_sum(loss_bbox,axis=-1) * tf.reshape(weight,(-1,))
+        
+        return tf.math.reduce_sum(loss_bbox) / tf.cast(avg_factor,loss_bbox.dtype)

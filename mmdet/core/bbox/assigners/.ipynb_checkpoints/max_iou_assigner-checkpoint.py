@@ -101,17 +101,17 @@ class MaxIoUAssigner(BaseAssigner):
         mask_ignore_bboxex =tf.where(tf.math.reduce_sum(gt_bboxes,axis=-1) >2.,)
         # mask_ignore_bboxex 
         # tf.print(mask_ignore_bboxex)
-        mask_ignore_bboxex  = tf.reshape(mask_ignore_bboxex,[-1,])
-        if gt_labels is not None:
-            gt_labels = tf.gather(gt_labels,mask_ignore_bboxex)
-        gt_bboxes = tf.gather(gt_bboxes,mask_ignore_bboxex)
+#         mask_ignore_bboxex  = tf.reshape(mask_ignore_bboxex,[-1,])
+#         if gt_labels is not None:
+#             gt_labels = tf.gather(gt_labels,mask_ignore_bboxex)
+#         gt_bboxes = tf.gather(gt_bboxes,mask_ignore_bboxex)
 #         assert gt_bboxes.shape[0] > 0
         overlaps = self.iou_calculator(gt_bboxes, bboxes)
         
-        assign_result = self.assign_wrt_overlaps(overlaps, gt_labels)
+        assign_result = self.assign_wrt_overlaps(overlaps, gt_labels,mask_ignore_bboxex)
         return assign_result
     
-    def assign_wrt_overlaps(self, overlaps, gt_labels=None):
+    def assign_wrt_overlaps(self, overlaps, gt_labels=None,valid_rows=None):
         """Assign w.r.t. the overlaps of bboxes with gts.
         Args:
             overlaps (Tensor): Overlaps between k gt_bboxes and n bboxes,
@@ -152,16 +152,18 @@ class MaxIoUAssigner(BaseAssigner):
             # However, if GT bbox 2's gt_argmax_overlaps = A, bbox A's
             # assigned_gt_inds will be overwritten to be bbox B.
             # This might be the reason that it is not used in ROI Heads.
-            force_match_column_indicators = tf.one_hot(
-                        gt_argmax_overlaps, depth=tf.shape(overlaps)[1])
+#             force_match_column_indicators = tf.one_hot(
+#                         gt_argmax_overlaps, depth=tf.shape(overlaps)[1])
 
+            force_match_column_indicators = (
+            tf.one_hot(
+                gt_argmax_overlaps, depth=tf.shape(overlaps)[1]) *
+            tf.cast(tf.expand_dims(valid_rows, axis=-1), dtype=tf.float32))
             force_match_row_ids = tf.argmax(force_match_column_indicators, 0,
-                                            output_type=tf.int32)
-
+                                        output_type=tf.int32)
+#             force_match_row_ids=force_match_row_ids*tf.cast(tf.expand_dims(valid_rows, axis=-1), dtype=tf.float32)
             force_match_column_mask = tf.cast(
                 tf.reduce_max(force_match_column_indicators, 0), tf.bool)
-
-            
             assigned_gt_inds = tf.where(force_match_column_mask,
                                     force_match_row_ids + 1, assigned_gt_inds)
             # pass

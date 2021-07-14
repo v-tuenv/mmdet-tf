@@ -328,7 +328,7 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
         
         # regression loss
         bbox_targets =tf.reshape(bbox_targets,(-1, 4))
-        bbox_weights = tf.reshape(bbox_weights,(-1,1))
+        bbox_weights = tf.reshape(bbox_weights,(-1,))
         bbox_pred =tf.reshape(bbox_pred, (-1,4))# bbox_pred.permute(0, 2, 3, 1).reshape(-1, 4)
         if self.reg_decoded_bbox:
             # When the regression loss (e.g. `IouLoss`, `GIouLoss`)
@@ -336,7 +336,7 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
             # decodes the already encoded coordinates to absolute format.
             anchors =tf.reshape(anchors,(-1, 4))
             bbox_pred = self.bbox_coder.decode(anchors, bbox_pred)
-            bbox_targets = tf.stop_gradient(bbox_targets)
+#             bbox_targets = tf.stop_gradient(bbox_targets)
         loss_bbox = self.loss_bbox(
             bbox_pred,
             bbox_targets,
@@ -1072,7 +1072,7 @@ class AnchorHead(BaseDenseHead):
             # decodes the already encoded coordinates to absolute format.
             anchors =tf.reshape(anchors,(-1, 4))
             bbox_pred = self.bbox_coder.decode(anchors, bbox_pred)
-            bbox_targets = tf.stop_gradient(bbox_targets)
+#             bbox_targets = tf.stop_gradient(bbox_targets)
         loss_bbox = self.loss_bbox(
             bbox_pred,
             bbox_targets,

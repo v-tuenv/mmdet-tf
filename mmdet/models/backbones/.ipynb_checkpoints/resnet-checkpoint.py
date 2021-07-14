@@ -571,3 +571,16 @@ class ResNetV1d(ResNet):
     def __init__(self, **kwargs):
         super(ResNetV1d, self).__init__(
             deep_stem=True, avg_down=True, **kwargs)
+        
+
+@BACKBONES.register_module()
+class ResNetKeras(tf.keras.Model):
+    def __init__(self,**kwargs):
+        base = tf.keras.applications.resnet50.ResNet50(include_top=False,weights='imagenet')
+        layer_outputs=['conv2_block3_out','conv3_block4_out','conv4_block6_out','conv5_block3_out']
+        outputs = [
+        base.get_layer(layer_name).output
+        for layer_name in layer_outputs
+        ]
+        super().__init__(inputs=base.inputs, outputs=outputs)
+        

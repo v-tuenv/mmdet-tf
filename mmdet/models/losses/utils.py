@@ -37,9 +37,11 @@ def weight_reduce_loss(loss, weight=None, reduction='mean', avg_factor=None):
         Tensor: Processed loss values.
     """
     # if weight is specified, apply element-wise weight
+#     print('before weight',tf.math.reduce_sum(loss),"weigh :", weight , tf.math.reduce_sum(tf.where(weight > 1, 1,0)))
+    
     if weight is not None:
         loss = loss * tf.cast(weight,loss.dtype)
-
+#     print('affter weight',tf.math.reduce_sum(loss))
     # if avg_factor is not specified, just reduce the loss
     if avg_factor is None:
         loss = reduce_loss(loss, reduction)
