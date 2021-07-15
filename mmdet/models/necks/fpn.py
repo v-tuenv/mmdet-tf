@@ -17,6 +17,25 @@ class ResizeLayer(tf.keras.layers.Layer):
     def call(self ,inputs):
         return tf.compat.v1.image.resize_nearest_neighbor(
                         inputs, self.size_image)
+
+class FPNBrainStorm(tf.keras.layers.Layer):
+    def __call__(self, in_channels,
+                 out_channels,
+                 num_outs,
+                 start_level=0,
+                 end_level=-1,
+                 add_extra_convs=False,
+                 extra_convs_on_inputs=True,
+                 relu_before_extra_convs=False,
+                 no_norm_on_lateral=False,
+                 conv_cfg=None,
+                 norm_cfg=None,
+                 act_cfg=None,
+                 upsample_cfg=dict(mode='nearest',scale_factor=2),
+                 init_cfg=dict(
+                     type='Xavier', layer='Conv2d', distribution='uniform')):
+        super().__init__()
+        
 @NECKS.register_module()
 class FPN(tf.keras.layers.Layer):
     r"""Feature Pyramid Network.

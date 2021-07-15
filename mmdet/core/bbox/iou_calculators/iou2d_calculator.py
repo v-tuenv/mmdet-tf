@@ -115,8 +115,8 @@ class BboxOverlaps2D:
             bboxes2 = cast_tensor_type(bboxes2, self.scale, self.dtype)
             overlaps = bbox_overlaps(bboxes1, bboxes2, mode, is_aligned)
             return overlaps
-        with tf.device("cpu"):
-            return bbox_overlaps(bboxes1, bboxes2, mode, is_aligned)
+        
+        return bbox_overlaps(bboxes1, bboxes2, mode, is_aligned)
 
     def __repr__(self):
         """str: a string describing the module"""

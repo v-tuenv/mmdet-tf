@@ -7,8 +7,8 @@ import sys
 sys.path.append("/home/tuenguyen/Desktop/long_pro/mmdet_tf/")
 from mmdet.core import *
 tf.random.set_seed(12)
-bboxes=tf.convert_to_tensor([[[ 62.66066  , 241.23769  , 279.47253  , 378.02307  ],
-        [  3.6642313,   3.1684952, 511.03354  , 510.63177  ],
+bboxes=tf.convert_to_tensor([[[34.8102   , 122.88     , 141.41643  , 189.952    ],
+        [  5.8016996,   6.144    , 255.27478  , 254.976  ],
         [  0.       ,   0.       ,   64.       ,   128.    ],
         [  0.       ,   0.       ,   0.       ,   0.       ],
         [  0.       ,   0.       ,   0.       ,   0.       ],
@@ -40,6 +40,8 @@ cate=tf.convert_to_tensor([[2, 1, 3, -1, -1, -1, -1, -1, -1, -1],
 print(bboxes.shape, cate.shape)
 
 
+from mmdet import core,models
+from mmdet.utils.util_mixins import Config
 from mmdet import core,models
 from mmdet.utils.util_mixins import Config
 model = dict(
@@ -92,8 +94,7 @@ model = dict(
             neg_iou_thr=0.4,
             min_pos_iou=0,
             ignore_iof_thr=-1,
-            match_low_quality=False,
-            iou_calculator=dict(type='BboxOverlaps2DIOU')),
+            iou_calculator=dict(type='BboxOverlaps2D')),
         allowed_border=-1,
         pos_weight=-1,
         debug=False)),
@@ -103,9 +104,10 @@ model = dict(
         score_thr=0.05,
         nms=dict(type='nms', iou_threshold=0.5),
         max_per_img=100)))
-# retina = models.build_detector(model)
-
 retina = models.build_detector(model)
+
+
+# retina = models.build_detector(model)
 
 fake_images = tf.random.normal(shape=(2, 512, 512, 3))
 tf.config.run_functions_eagerly(True)

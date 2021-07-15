@@ -124,16 +124,19 @@ def bbox2delta(proposals, gt, means=(0., 0., 0., 0.), stds=(1., 1., 1., 1.)):
     gh = gt[..., 3] - gt[..., 1]
 
     dx = (gx - px) / pw 
-    dx = (dx - means[0]) / stds[0]
     dy = (gy - py) / ph
-    dy = (dy-means[1]) / stds[1]
     dw = tf.math.log(gw / pw)
-    dw = (dw-means[2]) / stds[2]
-    
-    dh = tf.math.log(gh / ph)
-    dh = (dh-means[3]) / stds[3]
-    deltas = tf.stack([dx, dy, dw, dh], axis=-1)
 
+    dh = tf.math.log(gh / ph)
+    
+    deltas = tf.stack([dx, dy, dw, dh], axis=-1)
+    means = tf.convert_to_tensor(means, tf.float32)
+    means = tf.expand_dims(means, 0)
+    stds = tf.convert_to_tensor(stds)
+    stds=tf.expand_dims(stds, 0)
+   
+    deltas =tf.math.subtract(deltas, means) 
+    deltas = tf.math.divide(deltas, stds)
     return deltas
 
 def delta2bbox(rois,

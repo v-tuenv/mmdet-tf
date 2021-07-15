@@ -58,7 +58,6 @@ class BaseDenseHeadSpaceSTORM(tf.keras.layers.Layer):
 #         print(loss_inputs)
         losses = self.mloss(*loss_inputs)
         if proposal_cfg is None:
-            print(losses)
             return losses
         else:
             proposal_list = self.get_bboxes(*outs,  cfg=proposal_cfg)
