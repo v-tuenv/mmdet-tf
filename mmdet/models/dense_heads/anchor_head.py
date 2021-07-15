@@ -165,7 +165,7 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
         """
         
         if num_imgs is None:
-            #tf.print("None batch_size compute")
+            tf.print("None batch_size compute")
         # since feature map sizes of all images are the same, we only compute
         # anchors for one time
         multi_level_anchors = self.anchor_generator.grid_anchors(
@@ -185,20 +185,15 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
                                                gt_bboxes)
 
         # bbox target
-        ch = tf.where(pos_inds > 0)
-        ch =tf.reshape(ch,[-1,])
+
         bbox_weights = tf.reshape(pos_inds,[-1,1])
-        print(anchors.shape)
-        print(anchors)
-        print("check anchors")
         if not self.reg_decoded_bbox:
             pos_bbox_targets = tf.concat([tf.convert_to_tensor([[0.,0.,1.,1.],[0.,0.,1.,1.]],tf.float32),
                                         gt_bboxes],axis=0)
             pos_bbox_targets = tf.gather(pos_bbox_targets, assigned_gt_inds+1)
             bbox_targets=self.bbox_coder.encode(
                     anchors,pos_bbox_targets)
-            print(tf.gather(bbox_targets,ch),tf.gather(pos_bbox_targets,ch),tf.gather(anchors,ch))
-            print('done')
+
         else:
             pos_bbox_targets = tf.concat([tf.convert_to_tensor([[0.,0.,1.,1.],[0.,0.,1.,1.]],tf.float32),
                                         gt_bboxes],axis=0)
@@ -207,17 +202,9 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
 
         # compute class
         if gt_labels is None:
-            #tf.print('raise implement rpn seperate')
+            tf.print('raise implement rpn seperate')
         labels = assigned_labels
         label_weights = pos_inds + neg_inds
-        test_pos = tf.where(pos_inds)
-        test_pos=tf.reshape(test_pos,(-1,))
-        #tf.print("he")
-        #tf.print(tf.math.reduce_sum(pos_inds))
-        #tf.print(tf.math.reduce_sum(neg_inds))
-        #tf.print(tf.gather(labels, test_pos), tf.gather(pos_bbox_targets, test_pos),\
-        tf.gather(bbox_targets,test_pos),tf.gather(anchors,test_pos))
-        #tf.print("check")
         return (labels, label_weights, bbox_targets, bbox_weights, pos_inds,
                 neg_inds)
     
@@ -798,7 +785,7 @@ class AnchorHead(BaseDenseHead):
         """
         
         if num_imgs is None:
-            #tf.print("None batch_size compute")
+            tf.print("None batch_size compute")
         # since feature map sizes of all images are the same, we only compute
         # anchors for one time
         multi_level_anchors = self.anchor_generator.grid_anchors(
@@ -868,7 +855,7 @@ class AnchorHead(BaseDenseHead):
             bbox_weights = tf.tile(tf.reshape(pos_inds,[-1,1]),[1,4])
 
         if gt_labels is None:
-            #tf.print('raise implement rpn seperate')
+            tf.print('raise implement rpn seperate')
         labels = assign_result[-1]
         label_weights = pos_inds + neg_inds
 
