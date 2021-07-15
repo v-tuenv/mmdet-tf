@@ -94,6 +94,8 @@ class DeltaXYWHBBoxCoder(box_coder.BoxCoder):
     Returns:
       boxes: BoxList holding N bounding boxes.
     """
+    if not isinstance(anchors,box_list.BoxList):
+      anchors = box_list.BoxList(anchors)
     ycenter_a, xcenter_a, ha, wa = anchors.get_center_coordinates_and_sizes()
 
     ty, tx, th, tw = tf.unstack(tf.transpose(rel_codes))

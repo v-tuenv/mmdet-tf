@@ -174,7 +174,7 @@ class TargetAnchorAssigner(object):
       raise ValueError('groundtruth_boxes must be an BoxList')
 
     if unmatched_class_label is None:
-      unmatched_class_label = tf.constant([0], tf.int32)
+      unmatched_class_label = tf.constant([-1], tf.int32)
 
     if groundtruth_labels is None:
       groundtruth_labels = tf.ones(tf.expand_dims(groundtruth_boxes.num_boxes(),
