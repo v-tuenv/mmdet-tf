@@ -266,6 +266,7 @@ class AnchorGenerator(object):
         """
         # keep as Tensor, so that we can covert to ONNX correctly
         feat_h, feat_w = featmap_size
+
         shift_x =  tf.range(0, feat_w, dtype=tf.float32) * stride[0]
         shift_y =  tf.range(0, feat_h, dtype = tf.float32) * stride[1]
 

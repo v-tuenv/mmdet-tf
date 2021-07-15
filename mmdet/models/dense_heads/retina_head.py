@@ -1,3 +1,4 @@
+from mmdet.models.dense_heads.anchor_head_tf import AnchorHeadSpaceSTORMTF
 import numpy as np
 from mmdet.models.dir_will_be_delete.mix_layers import SequentialLayer
 from tensorflow import keras
@@ -5,6 +6,7 @@ import tensorflow as tf
 from tensorflow.python.ops.gen_array_ops import pad
 from ..builder import HEADS
 from .anchor_head import AnchorHead, AnchorHeadSpaceSTORM
+from .anchor_head_tf import AnchorHeadSpaceSTORMTF
 from ..dir_will_be_delete.norm import build_norm_layer
 from ..dir_will_be_delete.conv import build_conv_layer
 from ..dir_will_be_delete.conv_att_bn import ConvModule
@@ -140,7 +142,7 @@ class RetinaHead(AnchorHead):
 
 
 @HEADS.register_module()
-class RetinaHeadSpaceSTORM(AnchorHeadSpaceSTORM):
+class RetinaHeadSpaceSTORM(AnchorHeadSpaceSTORMTF):
     r"""An anchor-based head used in `RetinaNet
     <https://arxiv.org/pdf/1708.02002.pdf>`_.
     The head contains two subnetworks. The first classifies anchor boxes and
