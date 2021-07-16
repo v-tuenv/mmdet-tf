@@ -206,8 +206,11 @@ class AnchorHeadSpaceSTORMTF(BaseDenseHeadSpaceSTORM):
         bbox_preds = tf.concat(bbox_preds, axis=0) # batch_size*num_bbox,4
         multi_level_anchors = tf.concat(multi_level_anchors, axis=0) # (num_bbox,4)
         multi_level_anchors = box_list.BoxList(multi_level_anchors)
-        gt_bboxes = [box_list.BoxList(i) for i in gt_bboxes]
-        gt_labels = [tf.reshape(gt_label,(-1,1)) for gt_label in gt_labels]
+        for i in range(N):
+            gt=tf.reshape(tf.where(gt_labels[i] >=0),(-1,))
+            gt_labels[i] = tf.gather(gt_labels[i],gt)
+            gt_labels[i] = tf.reshape(gt_labels[i],(-1,1))
+            gt_bboxes[i] =box_list.BoxList(tf.gather(gt_bboxes[i], gt))
         # apply per batch
         # todos add 
         
