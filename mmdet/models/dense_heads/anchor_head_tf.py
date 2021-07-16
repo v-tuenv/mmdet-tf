@@ -170,7 +170,6 @@ class AnchorHeadSpaceSTORMTF(BaseDenseHeadSpaceSTORM):
         anchor_list = [multi_level_anchors for _ in range(num_imgs)]
         return anchor_list
        
-    @tf.function(experimental_relax_shapes=True)
     def mloss(self,
              cls_scores,
              bbox_preds,
@@ -232,7 +231,6 @@ class AnchorHeadSpaceSTORMTF(BaseDenseHeadSpaceSTORM):
             batch_reg_weights,
             avg_factor=num_total_samples)
         return dict(loss_cls = loss_cls,loss_bbox=loss_bbox)
-    @tf.function(experimental_relax_shapes=True)
     def batch_assign(self,anchors_batch, gt_box_batch,
                     gt_class_targets_batch,unmatched_class_label=None, gt_weights_batch=None ):
             
