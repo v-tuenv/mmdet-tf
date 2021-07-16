@@ -176,7 +176,7 @@ class AnchorHeadSpaceSTORMTF(BaseDenseHeadSpaceSTORM):
              bbox_preds,
              gt_bboxes,
              gt_labels,
-             gt_weights_batch=None
+             
              ):
         """Compute losses of the head.
         Args:
@@ -206,24 +206,25 @@ class AnchorHeadSpaceSTORMTF(BaseDenseHeadSpaceSTORM):
         bbox_preds = tf.concat(bbox_preds, axis=0) # batch_size*num_bbox,4
         multi_level_anchors = tf.concat(multi_level_anchors, axis=0) # (num_bbox,4)
         multi_level_anchors = box_list.BoxList(multi_level_anchors)
+        gt_weights_batch=[]
         for i in range(N):
-            gt=tf.reshape(tf.where(gt_labels[i] >=0),(-1,))
-            gt_labels[i] = tf.gather(gt_labels[i],gt)
+            gt=tf.where(gt_labels[i] >=0,1.,0.)
+            gt_weights_batch.append(gt)
             gt_labels[i] = tf.reshape(gt_labels[i],(-1,1))
-            gt_bboxes[i] =box_list.BoxList(tf.gather(gt_bboxes[i], gt))
+            gt_bboxes[i] =box_list.BoxList(gt_bboxes[i])
         # apply per batch
         # todos add 
         
         (batch_cls_targets, batch_cls_weights, batch_reg_targets,
                 batch_reg_weights, batch_match) = self.batch_assign(multi_level_anchors, gt_bboxes,
                                                                     gt_labels,
-                                                                    
                                                                     gt_weights_batch=gt_weights_batch) 
         batch_cls_targets = tf.reshape(batch_cls_targets,(-1,))
         batch_cls_weights = tf.reshape(batch_cls_weights,(-1,))
         batch_reg_targets=tf.reshape(batch_reg_targets, (-1,4))
         batch_reg_weights=tf.reshape(batch_reg_weights,(-1,))
         num_total_samples = tf.math.reduce_sum(batch_reg_weights)
+        tf.print("here ",num_total_samples)
         loss_cls = self.loss_cls(
             cls_scores,batch_cls_targets, batch_cls_weights, avg_factor=num_total_samples)
         loss_bbox = self.loss_bbox(bbox_preds,

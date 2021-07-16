@@ -308,6 +308,7 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
         loss_cls = self.loss_cls(
             cls_score, labels, label_weights, avg_factor=num_total_samples)
         
+        print(num_total_samples)
         # regression loss
         bbox_targets =tf.reshape(bbox_targets,(-1, 4))
         bbox_weights = tf.reshape(bbox_weights,(-1,))
