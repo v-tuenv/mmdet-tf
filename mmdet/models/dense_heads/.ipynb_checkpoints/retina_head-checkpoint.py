@@ -1,3 +1,4 @@
+from mmdet.models.dense_heads.anchor_head_tf import AnchorHeadSpaceSTORMTF
 import numpy as np
 from mmdet.models.dir_will_be_delete.mix_layers import SequentialLayer
 from tensorflow import keras
@@ -5,6 +6,7 @@ import tensorflow as tf
 from tensorflow.python.ops.gen_array_ops import pad
 from ..builder import HEADS
 from .anchor_head import AnchorHead, AnchorHeadSpaceSTORM
+from .anchor_head_tf import AnchorHeadSpaceSTORMTF
 from ..dir_will_be_delete.norm import build_norm_layer
 from ..dir_will_be_delete.conv import build_conv_layer
 from ..dir_will_be_delete.conv_att_bn import ConvModule
@@ -140,7 +142,7 @@ class RetinaHead(AnchorHead):
 
 
 @HEADS.register_module()
-class RetinaHeadSpaceSTORM(AnchorHeadSpaceSTORM):
+class RetinaHeadSpaceSTORM(AnchorHeadSpaceSTORMTF):
     r"""An anchor-based head used in `RetinaNet
     <https://arxiv.org/pdf/1708.02002.pdf>`_.
     The head contains two subnetworks. The first classifies anchor boxes and
@@ -229,11 +231,11 @@ class RetinaHeadSpaceSTORM(AnchorHeadSpaceSTORM):
                 #     conv_cfg=self.conv_cfg,
                 #     norm_cfg=self.norm_cfg))
 
+        kernel_init = tf.initializers.RandomNormal(0.0, 0.01)
         self.cls_convs = tf.keras.Sequential(cls_convs)# SequentialLayer(cls_convs)
         self.reg_convs = tf.keras.Sequential(reg_convs)
-        self.retina_cls =tf.keras.layers.Conv2D(self.num_anchors * self.cls_out_channels,3,padding='SAME',bias_initializer=tf.constant_initializer(-np.log((1 - 0.01) / 0.01)),)
-        self.retina_reg = tf.keras.layers.Conv2D(self.num_anchors *4, 3 , padding='SAME',kernel_initializer=tf.random_normal_initializer(stddev=0.01),)
-
+        self.retina_cls =tf.keras.layers.Conv2D(self.num_anchors * self.cls_out_channels,3,padding='SAME',kernel_initializer=kernel_init, bias_initializer=tf.constant_initializer(-np.log((1 - 0.01) / 0.01)),)
+        self.retina_reg = tf.keras.layers.Conv2D(self.num_anchors *4, 3 , padding='SAME',kernel_initializer=kernel_init,bias_initializer=tf.random_normal_initializer(stddev=0.01),)
 
     @tf.function(experimental_relax_shapes=True)
     def forward_single(self, x,training=False):

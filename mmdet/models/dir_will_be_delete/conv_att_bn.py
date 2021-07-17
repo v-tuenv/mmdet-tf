@@ -33,7 +33,7 @@ def ConvModule(in_channels,
     with_explicit_padding = padding_mode not in official_padding_mode
     if bias == 'auto':
             bias = not with_norm
-    if with_explicit_padding:
+    if padding > 0:
         pad_cfg = dict(type=padding_mode)
         # self.padding_layer = build_padding_layer(pad_cfg, padding)
         padding_layer = tf.keras.layers.ZeroPadding2D(padding=(padding, padding))
@@ -61,7 +61,7 @@ def ConvModule(in_channels,
     final_seq =  tf.keras.Sequential()
     for layer in order:
         if layer == 'conv':
-            if with_explicit_padding:
+            if padding > 0:
                 final_seq.add(padding_layer)
             final_seq.add(conv)
         elif layer == 'norm' and norm and with_norm:

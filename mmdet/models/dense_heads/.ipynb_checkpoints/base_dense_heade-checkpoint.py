@@ -5,13 +5,8 @@ import tensorflow as tf
 class BaseDenseHeadSpaceSTORM(tf.keras.layers.Layer):
     def __init__(self,*args,**kwargs):
         super().__init__()
-    
-#     def build(self, input_shapes):
-#         '''keep note: densen head should recevied multiplies inputs from necks
-#         '''
-#         tf.print(f"layers-{self.name} is build in with default funtion at line 24-base_dense_haed do nothing")
-#         self.built=True
-#         pass
+    def get_config(self):
+        return super().get_config()
     def call(self, inputs, training=False):
         tf.print('call base head is not stable')
         pass
@@ -47,6 +42,8 @@ class BaseDenseHeadSpaceSTORM(tf.keras.layers.Layer):
         """
 #         print("trace base dense")
         outs = self(x, training=True)
+        print([i.shape for i in outs[0]])
+        print([i.shape for i in outs[1]])
         if batch_size is not None:
             gt_bboxes = tf.unstack(gt_bboxes,batch_size)
             if gt_labels is not None:
@@ -58,7 +55,6 @@ class BaseDenseHeadSpaceSTORM(tf.keras.layers.Layer):
 #         print(loss_inputs)
         losses = self.mloss(*loss_inputs)
         if proposal_cfg is None:
-            print(losses)
             return losses
         else:
             proposal_list = self.get_bboxes(*outs,  cfg=proposal_cfg)
@@ -80,7 +76,7 @@ class BaseDenseHead(tf.keras.layers.Layer, metaclass=ABCMeta):
         """Transform network output for a batch into bbox predictions."""
         pass
     
-    @tf.function(experimental_relax_shapes=True)
+    
     def forward_train(self,
                       x,
                       gt_bboxes,

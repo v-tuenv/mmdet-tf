@@ -62,7 +62,7 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
         self.feat_channels=feat_channels
         self.use_sigmoid_cls = loss_cls.get('use_sigmoid', False)
         self.sampling = loss_cls['type'] not in [
-            'FocalLoss', 'GHMC', 'QualityFocalLoss'
+            'FocalLoss', 'GHMC', 'QualityFocalLoss','FocalLossKeras'
         ]
         if self.use_sigmoid_cls:
             self.cls_out_channels = num_classes
@@ -166,12 +166,12 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
 
         assigned_gt_inds, max_overlaps, assigned_labels = self.assigner.assign(
             anchors, gt_bboxes, 
-            None if self.sampling else gt_labels)
+            gt_labels)
 
         pos_inds, neg_inds= self.sampler.sample(assigned_gt_inds, max_overlaps,
                                                 assigned_labels, anchors,
                                                gt_bboxes)
-
+        print("here")
         # bbox target
 
         bbox_weights = tf.reshape(pos_inds,[-1,1])
@@ -193,6 +193,7 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
             tf.print('raise implement rpn seperate')
         labels = assigned_labels
         label_weights = pos_inds + neg_inds
+        print('ok chec', labels)
         return (labels, label_weights, bbox_targets, bbox_weights, pos_inds,
                 neg_inds)
     
@@ -257,6 +258,7 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
 
         (all_labels, all_label_weights, all_bbox_targets, all_bbox_weights,
          pos_inds_list, neg_inds_list) = results[:6]
+        print(results)
         num_total_pos = sum([tf.math.maximum(tf.math.reduce_sum(inds), 1) for inds in pos_inds_list])
         num_total_neg = sum([tf.math.maximum(tf.math.reduce_sum(inds), 1) for inds in neg_inds_list])
         # split targets to a list w.r.t. multiple levels
@@ -308,7 +310,7 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
         loss_cls = self.loss_cls(
             cls_score, labels, label_weights, avg_factor=num_total_samples)
         
-        print(num_total_samples)
+#         tf.print(num_total_samples)
         # regression loss
         bbox_targets =tf.reshape(bbox_targets,(-1, 4))
         bbox_weights = tf.reshape(bbox_weights,(-1,))
@@ -324,7 +326,7 @@ class AnchorHeadSpaceSTORM(BaseDenseHeadSpaceSTORM):
             bbox_pred,
             bbox_targets,
             bbox_weights,
-            avg_factor=num_total_samples)
+            num_total_samples)
         return loss_cls, loss_bbox
 
     def mloss(self,

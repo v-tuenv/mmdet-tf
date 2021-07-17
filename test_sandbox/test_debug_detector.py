@@ -56,12 +56,11 @@ from mmdet import core,models
 from mmdet.utils.util_mixins import Config
 from mmdet import core,models
 from mmdet.utils.util_mixins import Config
-
 model = dict(
     type='RetinaNet',
     pretrained='torchvision://resnet50',
     backbone=dict(
-        type='ResNet',
+        type='ResNetKeras',
         depth=50,
         num_stages=4,
         out_indices=(0, 1, 2, 3),
@@ -75,6 +74,7 @@ model = dict(
         out_channels=256,
         start_level=1,
         add_extra_convs='on_input',
+        relu_before_extra_convs=True,
         num_outs=5),
     bbox_head=dict(
         type='RetinaHeadSpaceSTORM',
@@ -87,19 +87,19 @@ model = dict(
             octave_base_scale=4,
             scales_per_octave=3,
             ratios=[0.5, 1.0, 2.0],
-            strides=[4, 8, 16, 32, 64]),
+            strides=[8, 16, 32, 64, 128]),
         bbox_coder=dict(
             type='DeltaXYWHBBoxCoder',
             scale_factors=[1.,1.,1.,1.]),
             # target_means=[.0, .0, .0, .0],
             # target_stds=[1., 1., 1., 1.]),
-        loss_cls=dict(
-            type='FocalLoss',
-            use_sigmoid=True,
+       loss_cls=dict(
+            type='FocalLossKeras',
+           use_sigmoid=True,
             gamma=2.0,
             alpha=0.25,
-            loss_weight=1.0),
-        loss_bbox=dict(type='L1Loss', loss_weight=1.0)),
+            ),
+        loss_bbox=dict(type='BoxLoss',is_exp=True)),
     # model training and testing settings
     train_cfg=Config(dict(
         assigner=dict(
@@ -121,6 +121,7 @@ retina = models.build_detector(model)
 
 
 # retina = models.build_detector(model)
+
 
 fake_images = tf.random.normal(shape=(2, 512, 512, 3))
 tf.config.run_functions_eagerly(True)

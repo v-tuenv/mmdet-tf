@@ -137,3 +137,35 @@ class L1Loss(tf.keras.layers.Layer):
         # loss_bbox = tf.math.reduce_sum(loss_bbox,axis=-1) * tf.reshape(weight,(-1,))
         # print(loss_bbox)
         # return tf.math.reduce_sum(loss_bbox) / tf.cast(avg_factor,loss_bbox.dtype)
+@LOSSES.register_module()
+class BoxLoss():
+  """L2 box regression loss."""
+
+  def __init__(self, delta=0.1,is_exp=False, **kwargs):
+    """Initialize box loss.
+    Args:
+      delta: `float`, the point where the huber loss function changes from a
+        quadratic to linear. It is typically around the mean value of regression
+        target. For instances, the regression targets of 512x512 input with 6
+        anchors on P3-P7 pyramid is about [0.1, 0.1, 0.2, 0.2].
+      **kwargs: other params.
+    """
+    super().__init__(**kwargs)
+    self.is_exp=is_exp
+    self.huber = tf.keras.losses.MeanAbsoluteError(
+         reduction=tf.keras.losses.Reduction.NONE)
+
+  @tf.autograph.experimental.do_not_convert
+  def __call__(self, y_pred,
+                y_true,
+                weight=None,num_positives=None):
+    normalizer = tf.cast(num_positives,y_pred.dtype)
+    if self.is_exp:
+        mask =tf.cast(tf.math.logical_not(tf.math.reduce_all(y_true == 0.0,axis=-1)), y_pred.dtype)
+    else:
+        mask = tf.cast(weight, y_pred.dtype)
+    # TODO(fsx950223): remove cast when huber loss dtype is fixed.
+    box_loss = tf.cast(self.huber(y_true, y_pred),
+                       y_pred.dtype) * mask
+    box_loss = tf.reduce_sum(box_loss) / normalizer
+    return box_loss

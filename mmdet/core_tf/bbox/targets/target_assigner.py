@@ -78,7 +78,8 @@ class TargetAnchorAssigner(object):
                matcher=None,
                box_coder_instance=None,
                sampler=None,
-               negative_class_weight=1.0):
+               negative_class_weight=1.0,
+               ignored_value=0.):
     """Construct Object Detection Target Assigner.
 
     Args:
@@ -100,6 +101,7 @@ class TargetAnchorAssigner(object):
     #   raise ValueError('matcher must be a Matcher')
     # if not isinstance(box_coder_instance, box_coder.BoxCoder):
     #   raise ValueError('box_coder must be a BoxCoder')
+    self.ignored_value=ignored_value
     self._similarity_calc = similarity_calc
     self._matcher = matcher
     self._box_coder = box_coder_instance
@@ -197,8 +199,7 @@ class TargetAnchorAssigner(object):
       groundtruth_weights = tf.ones([num_gt_boxes], dtype=tf.float32)
 
     # set scores on the gt boxes
-    scores = 1 - groundtruth_labels[:, 0]
-    groundtruth_boxes.add_field(fields.BoxListFields.scores, scores)
+
 
     with tf.control_dependencies(
         [unmatched_shape_assert, labels_and_box_shapes_assert]):
@@ -216,7 +217,6 @@ class TargetAnchorAssigner(object):
 
       cls_weights = self._create_classification_weights(match,
                                                         groundtruth_weights)
-      # convert cls_weights from per-anchor to per-class.
       class_label_shape = tf.shape(cls_targets)[1:]
       weights_shape = tf.shape(cls_weights)
       weights_multiple = tf.concat(
@@ -376,7 +376,7 @@ class TargetAnchorAssigner(object):
     """
     return match.gather_based_on_match(
         groundtruth_weights,
-        ignored_value=0.,
+        ignored_value=self.ignored_value,
         unmatched_value=self._negative_class_weight)
 
   def get_box_coder(self):

@@ -177,12 +177,17 @@ class MaxIoUAssigner(BaseAssigner):
 
         # Get logical indices of ignored and unmatched columns as tf.int64
         matched_vals = tf.reduce_max(similarity_matrix, 0)
+        valid =tf.gather(valid_rows,matches)
+        valid =tf.cast(valid,tf.float32)
         below_unmatched_threshold = tf.greater(self.neg_iou_thr,
                                             matched_vals)
+        below_unmatched_threshold=tf.cast(below_unmatched_threshold, valid.dtype)
+        below_unmatched_threshold = below_unmatched_threshold * valid + (1-valid) * 0
+            
         between_thresholds = tf.logical_and(
             tf.greater_equal(matched_vals, self.neg_iou_thr),
             tf.greater(self.pos_iou_thr, matched_vals))
-
+        
         matches = self._set_values_using_indicator(matches,
                                                     below_unmatched_threshold,
                                                     -1)

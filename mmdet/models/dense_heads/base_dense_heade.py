@@ -42,6 +42,8 @@ class BaseDenseHeadSpaceSTORM(tf.keras.layers.Layer):
         """
 #         print("trace base dense")
         outs = self(x, training=True)
+        print([i.shape for i in outs[0]])
+        print([i.shape for i in outs[1]])
         if batch_size is not None:
             gt_bboxes = tf.unstack(gt_bboxes,batch_size)
             if gt_labels is not None:
@@ -74,7 +76,7 @@ class BaseDenseHead(tf.keras.layers.Layer, metaclass=ABCMeta):
         """Transform network output for a batch into bbox predictions."""
         pass
     
-    @tf.function(experimental_relax_shapes=True)
+    
     def forward_train(self,
                       x,
                       gt_bboxes,
