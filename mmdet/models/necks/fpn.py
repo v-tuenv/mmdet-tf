@@ -230,7 +230,8 @@ class FPN(tf.keras.layers.Layer):
 
         lateral_convs = []
         fpn_convs = []
-
+        # print(in_channels)
+        inputs = [tf.keras.layers.Input(shape=(None,None,i)) for i in in_channels]
         for i in range(start_level, backbone_end_level):
             l_conv = ConvModule(
                 in_channels[i],
@@ -275,7 +276,6 @@ class FPN(tf.keras.layers.Layer):
         fun_max = tf.keras.layers.MaxPool2D(pool_size=1, strides=2)
         use_image_resize = 'size' in upsample_cfg
         
-        inputs = [tf.keras.layers.Input(shape=(None,None,3)) for i in range(num_ins)]
         laterals = [
             lateral_conv(inputs[i + start_level])
             for i, lateral_conv in enumerate(lateral_convs)
