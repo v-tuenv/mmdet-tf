@@ -14,7 +14,6 @@ class BaseDenseHeadSpaceSTORM(tf.keras.layers.Layer):
         pass
     def get_loss_affter_call(self, outputs, labels):
         pass
-    
     def forward_train(self,
                       x,
                       gt_bboxes,
@@ -40,10 +39,7 @@ class BaseDenseHeadSpaceSTORM(tf.keras.layers.Layer):
                 losses: (dict[str, Tensor]): A dictionary of loss components.
                 proposal_list (list[Tensor]): Proposals of each image.
         """
-#         print("trace base dense")
         outs = self(x, training=True)
-        print([i.shape for i in outs[0]])
-        print([i.shape for i in outs[1]])
         if batch_size is not None:
             gt_bboxes = tf.unstack(gt_bboxes,batch_size)
             if gt_labels is not None:
@@ -52,7 +48,6 @@ class BaseDenseHeadSpaceSTORM(tf.keras.layers.Layer):
             loss_inputs = outs + (gt_bboxes,)
         else:
             loss_inputs = outs + (gt_bboxes, gt_labels, )
-#         print(loss_inputs)
         losses = self.mloss(*loss_inputs)
         if proposal_cfg is None:
             return losses
@@ -112,7 +107,6 @@ class BaseDenseHead(tf.keras.layers.Layer, metaclass=ABCMeta):
             loss_inputs = outs + (gt_bboxes,)
         else:
             loss_inputs = outs + (gt_bboxes, gt_labels, )
-#         print(loss_inputs)
         losses = self.mloss(*loss_inputs)
         if proposal_cfg is None:
             return losses

@@ -198,7 +198,6 @@ class AnchorHeadSpaceSTORMTF(BaseDenseHeadSpaceSTORM):
         N = cls_scores[0].shape[0]
         multi_level_anchors = self.anchor_generator.grid_anchors(
             featmap_sizes)
-        
         for i in range(len(cls_scores)):
             cls_scores[i] = tf.reshape(cls_scores[i],(N,-1))
             bbox_preds[i] = tf.reshape(bbox_preds[i], (N,-1))
@@ -206,6 +205,7 @@ class AnchorHeadSpaceSTORMTF(BaseDenseHeadSpaceSTORM):
         bbox_preds = tf.concat(bbox_preds, axis=-1) # batch_size*num_bbox,4
         cls_scores = tf.reshape(cls_scores,(-1,self.cls_out_channels))
         bbox_preds = tf.reshape(bbox_preds, (-1,4))
+
         multi_level_anchors = tf.concat(multi_level_anchors, axis=0) # (num_bbox,4)
         multi_level_anchors = box_list.BoxList(multi_level_anchors)
 
@@ -221,13 +221,11 @@ class AnchorHeadSpaceSTORMTF(BaseDenseHeadSpaceSTORM):
                                                                     gt_labels,
                                                                     gt_weights_batch=None) 
         batch_cls_targets = tf.reshape(batch_cls_targets,(-1,))
-        
         batch_cls_weights = tf.reshape(batch_cls_weights,(-1,))
         batch_reg_targets=tf.reshape(batch_reg_targets, (-1,4))
         batch_reg_weights=tf.reshape(batch_reg_weights,(-1,))
         num_positives = tf.reduce_sum(
         tf.cast(tf.greater_equal(batch_match, 0), tf.float32))
-#         tf.print(num_positives)
         loss_cls = self.loss_cls(
             cls_scores,batch_cls_targets, batch_cls_weights, avg_factor=num_positives)
         loss_bbox = self.loss_bbox(

@@ -19,6 +19,13 @@ def build_backbone(cfg):
 
 def build_neck(cfg):
     """Build neck."""
+    if 'return_funtion' in cfg:
+        cfg.pop("return_funtion")
+        converter_cls = NECKS.get(cfg['type'])
+        cfg.pop("type")
+        return converter_cls.make_funtion_model(
+            **cfg
+        )
     return NECKS.build(cfg)
 
 
@@ -36,9 +43,14 @@ def build_head(cfg):
     """Build head."""
     return HEADS.build(cfg)
 
-
 def build_loss(cfg):
     """Build loss."""
+    if 'return_funtion' in cfg:
+        cfg.pop("return_funtion")
+        converter_cls = LOSSES.get(cfg['type'])
+        return converter_cls.make_funtion_model(
+            **cfg
+        )
     return LOSSES.build(cfg)
 
 

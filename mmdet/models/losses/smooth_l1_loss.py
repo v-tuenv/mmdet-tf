@@ -165,7 +165,7 @@ class BoxLoss():
     else:
         mask = tf.cast(weight, y_pred.dtype)
     # TODO(fsx950223): remove cast when huber loss dtype is fixed.
-    box_loss = tf.cast(self.huber(y_true, y_pred),
-                       y_pred.dtype) * mask
+    box_loss = tf.math.abs(y_true - y_pred)
+    box_loss=tf.math.reduce_sum(box_loss,axis=-1) * mask
     box_loss = tf.reduce_sum(box_loss) / normalizer
     return box_loss

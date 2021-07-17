@@ -1,5 +1,6 @@
 import tensorflow as tf
 import warnings
+from tensorflow.python.ops.gen_array_ops import pad
 
 from tensorflow.python.ops.linalg_ops import norm
 from .conv import build_conv_layer
@@ -33,16 +34,24 @@ def ConvModule(in_channels,
     with_explicit_padding = padding_mode not in official_padding_mode
     if bias == 'auto':
             bias = not with_norm
+    
+    conv_padding = 0 if with_explicit_padding else padding
+    if conv_padding is 'SAME':
+        padding = -1
+        conv = tf.keras.layers.Conv2D(out_channels,kernel_size,strides=stride,
+                                        padding='same',dilation_rate=dilation,
+                                        groups=groups,use_bias=bias)
+    else:
+        conv = tf.keras.layers.Conv2D(out_channels,kernel_size,strides=stride,
+                                        padding='valid',dilation_rate=dilation,
+                                        groups=groups,use_bias=bias, )
     if padding > 0:
         pad_cfg = dict(type=padding_mode)
         # self.padding_layer = build_padding_layer(pad_cfg, padding)
         padding_layer = tf.keras.layers.ZeroPadding2D(padding=(padding, padding))
-    conv_padding = 0 if with_explicit_padding else padding
-    conv = tf.keras.layers.Conv2D(out_channels,kernel_size,strides=stride,
-                                    padding='valid',dilation_rate=dilation,
-                                    groups=groups,use_bias=bias)
     if with_spectral_norm:
         conv = tfa.layers.SpectralNormalization(conv)
+    seq = False
     if with_activation:
         act_cfg_ = act_cfg.copy()
         # nn.Tanh has no 'inplace' argument
@@ -59,16 +68,33 @@ def ConvModule(in_channels,
     else:
         norm=None
     final_seq =  tf.keras.Sequential()
+    
     for layer in order:
         if layer == 'conv':
-            if padding > 0:
+            if  padding > 0:
                 final_seq.add(padding_layer)
+                seq=True
             final_seq.add(conv)
         elif layer == 'norm' and norm and with_norm:
             final_seq.add(norm)
+            seq=True
         elif layer == 'act'  and with_activation:
             final_seq.add(activate)
-    return final_seq
+    if seq :
+        return final_seq
+    else:
+        if 'act' in order and with_activation:
+            conv = tf.keras.layers.Conv2D(out_channels,kernel_size,strides=stride,
+                                    padding='valid',dilation_rate=dilation,
+                                    groups=groups,use_bias=bias, activation=act_cfg_['type'].lower())
+                
+            if with_spectral_norm:
+                conv = tfa.layers.SpectralNormalization(conv)
+
+            return conv
+        else:
+            return conv
+         
 
 # class ConvModule(tf.keras.layers.Layer):
 #     """A conv block that bundles conv/norm/activation layers.
