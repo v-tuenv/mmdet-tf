@@ -14,6 +14,13 @@ DETECTORS = MODELS
 
 def build_backbone(cfg):
     """Build backbone."""
+    if 'return_funtion' in cfg:
+        cfg.pop("return_funtion")
+        converter_cls = NECKS.get(cfg['type'])
+        cfg.pop("type")
+        return converter_cls.make_funtion_model(
+            **cfg
+        )
     return BACKBONES.build(cfg)
 
 

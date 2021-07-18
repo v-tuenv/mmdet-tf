@@ -58,7 +58,6 @@ class RetinaHead(AnchorHead):
 
     def m_init_layers(self):
         """Initialize layers of the head."""
-        self.relu = tf.keras.layers.ReLU()# nn.ReLU(inplace=True)
         cls_convs = []
         reg_convs = []
         ich = 0
@@ -104,3 +103,14 @@ class RetinaHead(AnchorHead):
         cls_score = self.retina_cls(cls_feat,training=training)
         bbox_pred = self.retina_reg(reg_feat,training=training)
         return cls_score, bbox_pred
+
+    def forward_single_function(self, x):
+        cls_feat = x
+        reg_feat = x
+        cls_feat = self.cls_convs(x)
+        reg_feat = self.reg_convs(x)
+        cls_score = self.retina_cls(cls_feat)
+        bbox_pred = self.retina_reg(reg_feat)
+        return cls_score, bbox_pred
+
+    

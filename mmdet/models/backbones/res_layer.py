@@ -100,7 +100,9 @@ class ResLayer(tf.keras.Sequential):
                     **kwargs))
         super(ResLayer, self).__init__(layers)
 
-
+    def call_function(self, inputs):
+        for i in self._layers:inputs = i(inputs)
+        return inputs
 class SimplifiedBasicBlock(tf.keras.layers.Layer):
     """Simplified version of original basic residual block. This is used in
     `SCNet <https://arxiv.org/abs/2012.10150>`_.

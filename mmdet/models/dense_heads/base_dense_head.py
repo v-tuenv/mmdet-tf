@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 import tensorflow as tf
 
 
-class BaseDenseHead(tf.keras.layers.Layer):
+class BaseDenseHead(tf.keras.Model):
     def __init__(self,*args,**kwargs):
         super().__init__()
         if 'assigner_target_on_dataset' in kwargs:

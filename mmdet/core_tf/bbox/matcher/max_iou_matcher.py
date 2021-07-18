@@ -90,13 +90,11 @@ class ArgMaxMatcher(matcher.Matcher):
             """
             # Matches for each column
             matches = tf.argmax(similarity_matrix, 0, output_type=tf.int32)
-            valid =tf.gather(valid_rows,matches)
-            valid =tf.cast(valid,tf.float32)
+
             matched_vals = tf.reduce_max(similarity_matrix, 0)
             below_unmatched_threshold = tf.greater(self._unmatched_threshold,
                                                 matched_vals)
-            below_unmatched_threshold=tf.cast(below_unmatched_threshold, valid.dtype)
-            below_unmatched_threshold = below_unmatched_threshold * valid + (1-valid) * 0
+
             between_thresholds = tf.logical_and(
                 tf.greater_equal(matched_vals, self._unmatched_threshold),
                 tf.greater(self._matched_threshold, matched_vals))
@@ -127,24 +125,10 @@ class ArgMaxMatcher(matcher.Matcher):
                     tf.reduce_max(force_match_column_indicators, 0), tf.bool)
                 final_matches = tf.where(force_match_column_mask,
                                         force_match_row_ids, matches)
-                # valid_row=[1,1,1,0,0,0,0]
-                # M,index
-                input_tensor = tf.concat(
-                    [tf.stack([1, 1]),
-                    tf.cast(valid_rows,tf.int32)],
-                    axis=0)
-                v = tf.gather(input_tensor,final_matches + 2)
-                
-                final_matches = final_matches * v + (1-v) * -2
+
                 return final_matches
             else:
-                input_tensor = tf.concat(
-                    [tf.stack([1, 1]),
-                    tf.cast(valid_rows,tf.int32)],
-                    axis=0)
-                v = tf.gather(input_tensor,matches + 2)
-                v=tf.cast(v,tf.int32)
-                matches = matches * v + (1-v) * -2
+
                 return matches
 
         if similarity_matrix.shape.is_fully_defined():

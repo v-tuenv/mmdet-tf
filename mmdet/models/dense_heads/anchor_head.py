@@ -149,7 +149,20 @@ class AnchorHead(BaseDenseHead):
         cls_score = self.conv_cls(x,training=training)
         bbox_pred = self.conv_reg(x,training=training)
         return cls_score, bbox_pred
-
+    def forward_single_function(self, x):
+        """Forward feature of a single scale level.
+        Args:
+            x (Tensor): Features of a single scale level.
+        Returns:
+            tuple:
+                cls_score (Tensor): Cls scores for a single scale level \
+                    the channels number is num_anchors * num_classes.
+                bbox_pred (Tensor): Box energies / deltas for a single scale \
+                    level, the channels number is num_anchors * 4.
+        """
+        cls_score = self.conv_cls(x)
+        bbox_pred = self.conv_reg(x)
+        return cls_score, bbox_pred
     def get_anchors(self, featmap_sizes,num_imgs):
         """Get anchors according to feature map sizes.
         Args:
@@ -170,7 +183,13 @@ class AnchorHead(BaseDenseHead):
             featmap_sizes)
         anchor_list = [multi_level_anchors for _ in range(num_imgs)]
         return anchor_list
-       
+    def call_function(self, feats):
+        outs = []
+        N = len(feats)
+        for i in range(N):
+            outs.append(self.forward_single_function(feats[i]))
+        outs=tuple(map(list, zip(*outs)))
+        return tf.keras.Model(inputs=feats, outputs=outs)
     def mloss(self,
              cls_scores,
              bbox_preds,

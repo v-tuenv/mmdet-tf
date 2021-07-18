@@ -193,6 +193,7 @@ class FPN(tf.keras.layers.Layer):
                  act_cfg=None,
                  upsample_cfg=dict(mode='nearest',scale_factor=2),
                  return_funtion=False,
+                 inputs = None,
                  init_cfg=dict(
                      type='Xavier', layer='Conv2d', distribution='uniform')):
         
@@ -228,7 +229,8 @@ class FPN(tf.keras.layers.Layer):
         lateral_convs = []
         fpn_convs = []
         # print(in_channels)
-        inputs = [tf.keras.layers.Input(shape=(None,None,i)) for i in in_channels]
+        if inputs is None:
+            inputs = [tf.keras.layers.Input(shape=(None,None,i)) for i in in_channels]
         for i in range(start_level, backbone_end_level):
             l_conv = ConvModule(
                 in_channels[i],
@@ -350,7 +352,7 @@ class FPN(tf.keras.layers.Layer):
                         outs.append(self.fpn_convs[i](outs[-1],training=training))
         return tuple(outs)
     
-    def call_funtion(self, inputs):
+    def call_function(self, inputs):
         """Forward function."""
         assert len(inputs) == len(self.in_channels)
 

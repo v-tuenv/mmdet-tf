@@ -3,8 +3,10 @@ import warnings
 
 import tensorflow as tf
 from tensorflow import keras
+from tensorflow.python import tf2
+from tensorflow.python.keras.applications import resnet
 from tensorflow.python.keras.engine.input_layer import Input
-from tensorflow.python.ops.gen_array_ops import shape
+from tensorflow.python.ops.gen_array_ops import diag, shape
 from tensorflow_addons import layers
 from ..builder import BACKBONES
 from .res_layer import ResLayer
@@ -68,6 +70,27 @@ class BasicBlock(tf.keras.layers.Layer):
             return out
         out = _inner_forward(x,training=training)
         out = self.relu(out,training=training)
+        return out
+
+    def call_function(self, inputs):
+        def _inner_forward(x):
+            identity = x
+
+            out =self.convs1(x)
+            # out = self.conv1(x,training=training)
+            # out = self.norm1(out,training=training)
+            # out = self.relu(out,training=training)
+            out =self.convs2(out)
+            # out = self.conv2(out,training=training)
+            # out = self.norm2(out,training=training)
+
+            if self.downsample is not None:
+                identity = self.downsample(x)
+
+            out = out +  identity
+            return out
+        out = _inner_forward(inputs)
+        out = self.relu(out)
         return out
 
 
@@ -224,6 +247,31 @@ class Bottleneck(tf.keras.layers.Layer):
         out = _inner_forward(x,training=training)
 
         out = self.relu(out,training=training)
+
+        return out
+    def call_function(self, x):
+        """Forward function."""
+
+        def _inner_forward(x):
+            identity = x
+            out  = self.conv1(x)
+            out = self.conv2(out)
+
+            out = self.conv3(out)
+
+            if self.downsample is not None:
+                identity = self.downsample(x)
+
+            out = out + identity
+
+            return out
+
+        # if self.with_cp and x.requires_grad:
+            # out = cp.checkpoint(_inner_forward, x)
+        # else:
+        out = _inner_forward(x)
+
+        out = self.relu(out)
 
         return out
 
@@ -498,31 +546,73 @@ class ResNet(tf.keras.layers.Layer):
         
     def _freeze_stages(self):
         tf.print("implement freeze_stage")
+    
+    @staticmethod
+    def make_funtion_model( depth,
+                 in_channels=3,
+                 stem_channels=None,
+                 base_channels=64,
+                 num_stages=4,
+                 strides=(1, 2, 2, 2),
+                 dilations=(1, 1, 1, 1),
+                 out_indices=(0, 1, 2, 3),
+                 style='pytorch',
+                 deep_stem=False,
+                 avg_down=False,
+                 frozen_stages=-1,
+                 conv_cfg=None,
+                 norm_cfg=dict(type='BN', requires_grad=True),
+                 norm_eval=True,
+                 dcn=None,
+                 stage_with_dcn=(False, False, False, False),
+                 plugins=None,
+                 with_cp=False,
+                 zero_init_residual=True,
+                 pretrained=None,
+                 init_cfg=None):
 
-    def call_funtion(self, x):
+        instance = ResNet(
+                 depth,
+                 in_channels=in_channels,
+                 stem_channels=stem_channels,
+                 base_channels=base_channels,
+                 num_stages=num_stages,
+                 strides=strides,
+                 dilations=dilations,
+                 out_indices=out_indices,
+                 style=style,
+                 deep_stem=deep_stem,
+                 avg_down=avg_down,
+                 frozen_stages=frozen_stages,
+                 conv_cfg=conv_cfg,
+                 norm_cfg=norm_cfg,
+                 norm_eval=norm_eval,
+                 dcn=dcn,
+                 stage_with_dcn=stage_with_dcn,
+                 plugins=plugins,
+                 with_cp=with_cp,
+                 zero_init_residual=zero_init_residual,
+                 pretrained=pretrained,
+                 init_cfg=init_cfg)
+
+        inputs = tf.keras.layers.Input(shape=(None,None,in_channels))
+        outputs = instance.call_function(inputs)
+        return tf.keras.Model(inputs=inputs,outputs=outputs)
+
+
+    def call_function(self, x):
         if self.deep_stem:
-            if hasattr(self.stem,'not_base') and self.stem.not_base:
-                x = self.stem.call_funtion(x)
-            else:
-                x=self.stem(x)
+            
+            x=self.stem(x)
         else:
-            if hasattr(self.conv1,'not_base') and self.conv1.not_base:
-                x=self.conv1.call_funtion(x)
-            else:
-                x = self.conv1(x)
-            if hasattr(self.norm1,'not_base') and self.norm1.not_base:
-                x=self.norm1.call_funtion(x)
-            else:
-                x = self.norm1(x)
+            x = self.conv1(x)
+            x = self.norm1(x)
             x = self.relu(x)
         x = self.maxpool(x)
         outs = []
         for i, layer_name in enumerate(self.res_layers):
             res_layer = getattr(self, layer_name)
-            if hasattr(res_layer,'not_base') and res_layer.not_base:
-                x=res_layer.call_funtion(x)
-            else:
-                x = res_layer(x)
+            x = res_layer.call_function(x)
             if i in self.out_indices:
                 outs.append(x)
         return tuple(outs)
@@ -554,10 +644,6 @@ class ResNet(tf.keras.layers.Layer):
         self._freeze_stages()
         if mode and self.norm_eval:
             tf.print("implement at m_train line 638 resne.py")
-            # for m in self.modules():
-            #     # trick: eval have effect on BatchNorm only
-            #     if isinstance(m, _BatchNorm):
-            #         m.eval()
 
 
 @BACKBONES.register_module()
