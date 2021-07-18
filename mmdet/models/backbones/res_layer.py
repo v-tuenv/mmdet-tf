@@ -5,9 +5,9 @@ from tensorflow.python.keras.engine.input_layer import Input
 from tensorflow.python.keras.engine.sequential import Sequential
 from tensorflow.python.keras.layers.convolutional import Conv2D
 from tensorflow.python.ops.gen_array_ops import expand_dims
-from ..dir_will_be_delete.conv import build_conv_layer
-from ..dir_will_be_delete.norm import build_norm_layer
-from ..dir_will_be_delete.mix_layers import SequentialLayer
+from ..common.conv import build_conv_layer
+from ..common.norm import build_norm_layer
+from ..common.mix_layers import SequentialLayer
 class ResLayer(tf.keras.Sequential):
     """ResLayer to build ResNet style backbone.
     Args:

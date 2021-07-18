@@ -122,21 +122,10 @@ class L1Loss(tf.keras.layers.Layer):
         reduction = (
             reduction_override if reduction_override else self.reduction)
        
-        # print(weight.shape)
-        # a = tf.where(tf.reshape(weight,[-1,]) > 0)
-        # a = tf.reshape(a,[-1,])
-        # predx = tf.gather(pred,a)
-        # targety =tf.gather(target,a)
         loss_bbox = self.loss_weight * l1_loss(
             pred, target, weight, reduction=reduction, avg_factor=avg_factor)
         return loss_bbox
-        # print(loss_bbox)
-        # loss_bbox  = tf.math.abs(pred-target)
-        
-        # weight = tf.cast(weight,loss_bbox.dtype)
-        # loss_bbox = tf.math.reduce_sum(loss_bbox,axis=-1) * tf.reshape(weight,(-1,))
-        # print(loss_bbox)
-        # return tf.math.reduce_sum(loss_bbox) / tf.cast(avg_factor,loss_bbox.dtype)
+
 @LOSSES.register_module()
 class BoxLoss():
   """L2 box regression loss."""
