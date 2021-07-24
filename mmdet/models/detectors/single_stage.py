@@ -4,6 +4,7 @@ from .base_detector import BaseDetector
 
 from ..builder import DETECTORS, build_backbone, build_roi_extractor, build_neck, build_head
 import warnings
+from mmdet.core_tf.common import standart_fields
 @DETECTORS.register_module()
 class SingleStageDetector(BaseDetector):
     """Base class for single-stage detectors.
@@ -37,7 +38,7 @@ class SingleStageDetector(BaseDetector):
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
 
-  
+    
     @tf.function(experimental_relax_shapes=True)
     def extract_feat(self, img,training=False):
         """Directly extract features from the backbone+neck."""
@@ -65,10 +66,8 @@ class SingleStageDetector(BaseDetector):
         return outs
     @tf.function(experimental_relax_shapes=True)
     def forward_train(self,
-                      img,
-                      gt_bboxes,
-                      gt_labels,
-                      batch_size):
+                    data
+                    ):
         """
         Args:
             img (Tensor): Input images of shape (N, C, H, W).
@@ -86,12 +85,13 @@ class SingleStageDetector(BaseDetector):
         Returns:
             dict[str, Tensor]: A dictionary of loss components.
         """
-        print("trac forward train")
+        print("trace forward train")
+        img = data[standart_fields.InputDataFields.image]
         super(SingleStageDetector, self).forward_train(img)
         x = self.extract_feat(img,training=True)
-        losses = self.bbox_head.forward_train(x, gt_bboxes,
-                                              gt_labels, batch_size=batch_size)
-        return losses
+        losses_dict, losses = self.bbox_head.forward_train(x, data)
+        # tf.print(losses_dict, losses, 'head')
+        return losses_dict,losses
     def simple_test(self, imgs):
         feat = self.extract_feat(imgs)
         results_list=self.bbox_head.simple_test(feat)
@@ -135,3 +135,5 @@ class SingleStageDetector(BaseDetector):
         pass
     
 
+
+    

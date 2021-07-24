@@ -1,12 +1,15 @@
 from .builder import PIPELINE
 import tensorflow as tf
 from mmdet.datasets.tfrecords import tf_example_decoder
+from mmdet.core_tf.common import standart_fields
 @PIPELINE.register_module()
 class LoadRecord():
     def __init__(self, require_fields =None, decode_cfg=None):
         self.name = 'load_record_from_tfrecord'
         if require_fields is None:
-            require_fields = ['image','boxes','classes']
+            require_fields = [standart_fields.InputDataFields.image,
+                            standart_fields.InputDataFields.groundtruth_boxes,
+                            standart_fields.InputDataFields.groundtruth_classes]
         self.require_fields=require_fields
         if decode_cfg is None:
             decode_cfg = {'include_mask':False}
@@ -52,19 +55,22 @@ class LoadRecord():
         """
         with tf.name_scope('parser'):
             data = self.example_decoder.decode(value)
-            source_id = data['source_id']
-            image = data['image']
-            boxes = data['groundtruth_boxes']
-            classes = data['groundtruth_classes']
+            source_id = data[standart_fields.InputDataFields.source_id]
+            image = data[standart_fields.InputDataFields.image]
+            boxes = data[standart_fields.InputDataFields.groundtruth_boxes]
+            classes = data[standart_fields.InputDataFields.groundtruth_classes]
             classes = tf.reshape(tf.cast(classes, dtype=tf.float32), [-1, 1])
-            areas = data['groundtruth_area']
-            is_crowds = data['groundtruth_is_crowd']
+            areas = data[standart_fields.InputDataFields.groundtruth_area]
+            is_crowds = data[standart_fields.InputDataFields.groundtruth_is_crowd]
             image_masks = data.get('groundtruth_instance_masks', [])
             classes = tf.reshape(tf.cast(classes, dtype=tf.float32), [-1, 1])
         return  {
-            'boxes':boxes,
-            'image':image,
-            'classes':classes
+            standart_fields.InputDataFields.groundtruth_boxes:boxes,
+            standart_fields.InputDataFields.image:image,
+            standart_fields.InputDataFields.groundtruth_classes:classes
+            # 'boxes':boxes,
+            # 'image':image,
+            # 'classes':classes
         }
 
 @PIPELINE.register_module()
@@ -77,4 +83,4 @@ class LoadFromFile:
         image_file_name = value['image_file_name']
         encoded_jpg_io = tf.io.read_file(image_file_name)
         encoded_jpg_io = tf.io.decode_image(encoded_jpg_io, channels=3)
-        return {'image':encoded_jpg_io}
+        return {standart_fields.InputDataFields.image:encoded_jpg_io}

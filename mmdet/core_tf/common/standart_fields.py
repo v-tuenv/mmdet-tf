@@ -103,6 +103,10 @@ class InputDataFields(object):
   groundtruth_boxes = 'groundtruth_boxes'
   groundtruth_classes = 'groundtruth_classes'
   groundtruth_area='groundtruth_area'
+  height = 'height'
+  width='width'
+  groundtruth_is_crowd = 'groundtruth_is_crowd'
+  groundtruth_instance_masks = 'groundtruth_instance_masks'
   # image = 'image'
   # image_additional_channels = 'image_additional_channels'
   # original_image = 'original_image'
@@ -120,7 +124,7 @@ class InputDataFields(object):
   # groundtruth_track_match_flags = 'groundtruth_track_match_flags'
   # groundtruth_confidences = 'groundtruth_confidences'
   # groundtruth_label_types = 'groundtruth_label_types'
-  # groundtruth_is_crowd = 'groundtruth_is_crowd'
+  
   # groundtruth_area = 'groundtruth_area'
   # groundtruth_difficult = 'groundtruth_difficult'
   # groundtruth_group_of = 'groundtruth_group_of'
@@ -156,11 +160,15 @@ class InputDataFields(object):
   # image_width = 'image_width'
 
 
+
 class TargetComputeFields(object):
   classification_target='classification_target'
   regression_target = 'regression_target'
   classification_weight = 'classification_weight'
   regression_weight = 'regression_weight'
+  num_positive_fields = 'num_positive_fields'
+
+
 class DetectionResultFields(object):
   """Naming conventions for storing the output of the detector.
   Attributes:
@@ -331,12 +339,14 @@ class TfExampleFields(object):
   object_bbox_ymax = 'image/object/bbox/ymax'
   object_bbox_xmax = 'image/object/bbox/xmax'
   object_view = 'image/object/view'
+  object_area = 'image/object/area'
   object_truncated = 'image/object/truncated'
   object_occluded = 'image/object/occluded'
   object_difficult = 'image/object/difficult'
   object_group_of = 'image/object/group_of'
   object_depiction = 'image/object/depiction'
   object_is_crowd = 'image/object/is_crowd'
+  object_mask = 'image/object/mask'
   object_segment_area = 'image/object/segment/area'
   object_weight = 'image/object/weight'
   instance_masks = 'image/segmentation/object'

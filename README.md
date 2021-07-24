@@ -1,6 +1,6 @@
 # PLAN 
 
-## Thang 6:
+## June:
 - [x] builder
     [x] test-sandbox-builder
 - [ ] Anchor Generator Space
@@ -12,7 +12,7 @@
 - [x] sampler 
 - [x] retinanet
 
-## Tháng 7-Big update 
+## JuLy-Big update 
 
 - [x] Update new OOP-with graph mode training funtion.
     - [x] New Detector design
@@ -27,7 +27,8 @@
 # Models
 - [x] OneStage detector
 - [x] Retinanet FPN50
-## Thang 8-Big Update
+## August-Big Update
 - [ ] Implement two stage detector
+- [ ] Implement coco callbacks
 
 

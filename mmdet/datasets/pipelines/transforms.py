@@ -2,6 +2,7 @@ from .builder import PIPELINE
 
 import tensorflow as tf
 from mmdet.core_tf.common import box_list, preprocessor
+from mmdet.core_tf.common import standart_fields
 @PIPELINE.register_module()
 class Resize:
     def __init__(self, name = 'resize_pipeline', scale_min=1.,
@@ -62,10 +63,10 @@ class Resize:
         
         (image_scale,_scaled_height
         ,_scaled_width,_crop_offset_x,
-        _crop_offset_y)=self.set_training_random_scale_factors(value['image'])
-        dtype = value['image'].dtype
+        _crop_offset_y)=self.set_training_random_scale_factors(value[standart_fields.InputDataFields.image])
+        dtype = value[standart_fields.InputDataFields.image].dtype
         scaled_image = tf.image.resize(
-            value['image'], [_scaled_height, _scaled_width], method=self.method)
+            value[standart_fields.InputDataFields.image], [_scaled_height, _scaled_width], method=self.method)
         scaled_image = scaled_image[_crop_offset_y:_crop_offset_y +
                                     self.target_size[0],
                                     _crop_offset_x:_crop_offset_x +
@@ -77,7 +78,7 @@ class Resize:
 
 
 
-        boxlist = box_list.BoxList(value['boxes'])
+        boxlist = box_list.BoxList(value[standart_fields.InputDataFields.groundtruth_boxes])
         # boxlist is in range of [0, 1], so here we pass the scale_height/width
         # instead of just scale.
         boxes = preprocessor.box_list_scale(boxlist, _scaled_height,
@@ -97,5 +98,40 @@ class Resize:
             tf.not_equal((boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1]),
                         0))
         boxes = tf.gather_nd(boxes, indices)
-        classes = tf.gather_nd(value['classes'], indices)
-        return {'image':_image,'boxes':boxes,'classes':classes}# boxes, classes
+        classes = tf.gather_nd(value[standart_fields.InputDataFields.groundtruth_classes], indices)
+        return {standart_fields.InputDataFields.image:_image,
+                standart_fields.InputDataFields.groundtruth_boxes :boxes,
+                standart_fields.InputDataFields.groundtruth_classes:classes}# boxes, classes
+
+@PIPELINE.register_module()
+class PadInstance():
+    def __init__(self, num=10):
+        self.name = 'padding'
+        self.num= num
+    def __call__(self, value):
+        boxes=value[standart_fields.InputDataFields.groundtruth_boxes]
+        classes = value[standart_fields.InputDataFields.groundtruth_classes]
+        value[standart_fields.InputDataFields.groundtruth_boxes] = pad_to_fixed_size(boxes, -1, [self.num, 4])
+        value[standart_fields.InputDataFields.groundtruth_classes] = pad_to_fixed_size(classes,-1,[self.num,1])
+        return value
+def pad_to_fixed_size(data, pad_value, output_shape):
+  """Pad data to a fixed length at the first dimension.
+  Args:
+    data: Tensor to be padded to output_shape.
+    pad_value: A constant value assigned to the paddings.
+    output_shape: The output shape of a 2D tensor.
+  Returns:
+    The Padded tensor with output_shape [max_instances_per_image, dimension].
+  """
+  max_instances_per_image = output_shape[0]
+  dimension = output_shape[1]
+  data = tf.reshape(data, [-1, dimension])
+  num_instances = tf.shape(data)[0]
+  msg = 'ERROR: please increase config.max_instances_per_image'
+  with tf.control_dependencies(
+      [tf.assert_less(num_instances, max_instances_per_image, message=msg)]):
+    pad_length = max_instances_per_image - num_instances
+  paddings = pad_value * tf.ones([pad_length, dimension])
+  padded_data = tf.concat([data, paddings], axis=0)
+  padded_data = tf.reshape(padded_data, output_shape)
+  return padded_data

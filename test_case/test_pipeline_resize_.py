@@ -32,14 +32,10 @@ print(path, root)
 from mmdet.datasets.tfrecords.create_simple_tfrecord import create_from_generator
 from mmdet.datasets.pipelines import Compose,build_pipeline, transforms
 from mmdet.datasets.visualizer import vis_utils
-
+from mmdet.core_tf.common import standart_fields
 class PipeLineTest(tf.test.TestCase):
   
   def test_simple_pipeline(self):
-    
-    
-    
-
     AUTOTUNE = tf.data.experimental.AUTOTUNE
     datasets = tf.data.Dataset.list_files("./dataset/test_tf/*.tfrecord").shard(2,0)
     def _prefetch_dataset(filename):
@@ -57,18 +53,19 @@ class PipeLineTest(tf.test.TestCase):
 
     transform = [
         dict(type='LoadRecord'),
-        dict(type='Resize',target_size=(512,640))
+        dict(type='Resize',target_size=(512,640),scale_min=0.8,
+                                        scale_max=2.)
     ]
     compose_pipeline = Compose(transform)
     map_fn = lambda value:compose_pipeline(value)
     datasets = datasets.map(
     map_fn, num_parallel_calls=AUTOTUNE)
     a=0
-    for i in datasets.take(4):
-        image =i['image']
+    for i in datasets.take(6):
+        image =i[standart_fields.InputDataFields.image]
         print(image.shape)
         h,w = image.shape[0],image.shape[1]
-        boxes = i['boxes'].numpy() * np.array([[1./h,1./w,1./h,1./w]]).reshape(-1,4)
+        boxes = i[standart_fields.InputDataFields.groundtruth_boxes].numpy() * np.array([[1./h,1./w,1./h,1./w]]).reshape(-1,4)
         image=image.numpy()
         import cv2
         cv2.imwrite(f"./test_case/resources/{a}_img.png",image)
