@@ -92,7 +92,11 @@ class SingleStageDetector(BaseDetector):
         losses = self.bbox_head.forward_train(x, gt_bboxes,
                                               gt_labels, batch_size=batch_size)
         return losses
-
+    def simple_test(self, imgs):
+        feat = self.extract_feat(imgs)
+        results_list=self.bbox_head.simple_test(feat)
+        return results_list
+        
     def simple_test(self, img, img_metas, rescale=False):
         """Test function without test-time augmentation.
         Args:
@@ -109,11 +113,7 @@ class SingleStageDetector(BaseDetector):
         feat = self.extract_feat(img)
         results_list = self.bbox_head.simple_test(
             feat, img_metas, rescale=rescale)
-        # bbox_results = [
-        #     bbox2result(det_bboxes, det_labels, self.bbox_head.num_classes)
-        #     for det_bboxes, det_labels in results_list
-        # ]
-        # return bbox_results
+
         pass
 
     def aug_test(self, imgs, img_metas, rescale=False):
@@ -134,28 +134,4 @@ class SingleStageDetector(BaseDetector):
         """
         pass
     
-    @tf.function
-    def onnx_export(self, img, img_metas):
-        """Test function without test time augmentation.
-        Args:
-            img (torch.Tensor): input images.
-            img_metas (list[dict]): List of image information.
-        Returns:
-            tuple[Tensor, Tensor]: dets of shape [N, num_det, 5]
-                and class labels of shape [N, num_det].
-        """
-        x = self.extract_feat(img)
-        outs = self.bbox_head(x)
-        # get origin input shape to support onnx dynamic shape
-        pass
-        # get shape as tensor
-        # img_shape = torch._shape_as_tensor(img)[2:]
-        # img_metas[0]['img_shape_for_onnx'] = img_shape
-        # # get pad input shape to support onnx dynamic shape for exporting
-        # # `CornerNet` and `CentripetalNet`, which 'pad_shape' is used
-        # # for inference
-        # img_metas[0]['pad_shape_for_onnx'] = img_shape
-        # # TODO:move all onnx related code in bbox_head to onnx_export function
-        # det_bboxes, det_labels = self.bbox_head.get_bboxes(*outs, img_metas)
 
-        # return det_bboxes, det_labels

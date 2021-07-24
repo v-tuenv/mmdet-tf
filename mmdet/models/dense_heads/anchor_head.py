@@ -59,7 +59,8 @@ class AnchorHead(BaseDenseHead):
                     type='SmoothL1Loss', beta=1.0 / 9.0, loss_weight=1.0),
                 train_cfg=None,
                 test_cfg=None,
-                init_cfg=dict(type='Normal', layers='Conv2d', std=0.01)):
+                init_cfg=dict(type='Normal', layers='Conv2d', std=0.01),
+                compute_target_online=False):
         super(AnchorHead,self).__init__(init_cfg)
         self.in_channels=in_channels
         self.num_classes=num_classes
@@ -68,6 +69,7 @@ class AnchorHead(BaseDenseHead):
         self.sampling = loss_cls['type'] not in [
             'FocalLoss', 'GHMC', 'QualityFocalLoss'
         ]
+        self.compute_target_online=compute_target_online
         if self.use_sigmoid_cls:
             self.cls_out_channels = num_classes
         else:
@@ -254,6 +256,15 @@ class AnchorHead(BaseDenseHead):
             num_positives
             )
         return dict(loss_cls = loss_cls,loss_bbox=loss_bbox)
+    
+    def get_compute_instance_target(self):
+        @tf.autograph.experimental.do_not_convert
+        def assign(anchors, gt_boxes, gt_class_targets, unmatched_class_label,
+                gt_weights):
+            
+            pass
+        pass
+
     def batch_assign(self,anchors_batch, gt_box_batch,
                     gt_class_targets_batch,unmatched_class_label=None, gt_weights_batch=None ):
             
@@ -274,6 +285,7 @@ class AnchorHead(BaseDenseHead):
         match_list = []
         if gt_weights_batch is None:
             gt_weights_batch = [None] * len(gt_class_targets_batch)
+
         for anchors, gt_boxes, gt_class_targets, gt_weights in zip(
             anchors_batch, gt_box_batch, gt_class_targets_batch, gt_weights_batch):
             (cls_targets, cls_weights,
